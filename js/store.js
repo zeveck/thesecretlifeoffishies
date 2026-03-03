@@ -17,6 +17,9 @@ const progression = {
     xp: 0,
     level: 1,
     lastPassiveTick: Date.now(),
+    coins: 0,
+    pellets: 5,
+    lastDailyRefresh: Date.now(),
 };
 
 export function getProgression() {
@@ -54,6 +57,56 @@ export function getXPProgress() {
     return Math.min(progress / range, 1);
 }
 
+// --- Coin & pellet functions ---
+
+export function addCoins(amount) {
+    progression.coins += amount;
+}
+
+export function spendCoins(amount) {
+    if (progression.coins >= amount) {
+        progression.coins -= amount;
+        return true;
+    }
+    return false;
+}
+
+export function getCoins() {
+    return progression.coins;
+}
+
+export function getPellets() {
+    return progression.pellets;
+}
+
+export function usePellet() {
+    if (progression.pellets > 0) {
+        progression.pellets--;
+        return true;
+    }
+    return false;
+}
+
+export function buyFoodPack() {
+    if (spendCoins(5)) {
+        progression.pellets += 10;
+        return true;
+    }
+    return false;
+}
+
+export function fishCost(species) {
+    return species.level * 10;
+}
+
+export function refreshDailyPellets() {
+    const elapsed = Date.now() - progression.lastDailyRefresh;
+    if (elapsed >= 24 * 60 * 60 * 1000 && progression.pellets < 5) {
+        progression.pellets = 5;
+        progression.lastDailyRefresh = Date.now();
+    }
+}
+
 export function getAvailableSpecies() {
     return SPECIES_CATALOG.filter(s => s.level <= progression.level);
 }
@@ -77,19 +130,27 @@ export function canAddFish(fishes, species) {
     return species.level <= progression.level && (used + species.sizeInches * 0.6) <= cap;
 }
 
-export function passiveXPTick(fishCount) {
+export function passiveXPTick(fishCount, averageHappiness) {
     const now = Date.now();
     const elapsed = (now - progression.lastPassiveTick) / 1000;
     if (elapsed >= 60) {
         const minutes = Math.floor(elapsed / 60);
         addXP(minutes * fishCount);
+        // +1 coin per fish per minute, scaled by average happiness (0-1)
+        const happinessScale = Math.max(0, Math.min(averageHappiness ?? 0, 1));
+        const coins = Math.floor(minutes * fishCount * happinessScale);
+        if (coins > 0) addCoins(coins);
         progression.lastPassiveTick = now;
     }
 }
 
-export function applyOfflineXP(seconds, fishCount) {
+export function applyOfflineRewards(seconds, fishCount, averageHappiness) {
     const minutes = Math.min(Math.floor(seconds / 60), 1440); // cap at 24h
     addXP(minutes * fishCount);
+    // Offline coin catch-up: same passive formula
+    const happinessScale = Math.max(0, Math.min(averageHappiness ?? 0, 1));
+    const coins = Math.floor(minutes * fishCount * happinessScale);
+    if (coins > 0) addCoins(coins);
 }
 
 export function loadProgression(data) {
@@ -97,6 +158,9 @@ export function loadProgression(data) {
     progression.xp = data.xp ?? 0;
     progression.level = data.level ?? 1;
     progression.lastPassiveTick = data.lastPassiveTick ?? Date.now();
+    progression.coins = data.coins ?? 0;
+    progression.pellets = data.pellets ?? 5;
+    progression.lastDailyRefresh = data.lastDailyRefresh ?? Date.now();
     checkLevelUp();
 }
 

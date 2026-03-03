@@ -5,7 +5,7 @@ import { getFoods } from './food.js';
 import { getWaterQuality } from './tank.js';
 
 export const SPECIES_CATALOG = [
-    { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#1a6bff', fin: '#ff3040', belly: '#c0deff', speed: 60, aspect: 2.8, tailStyle: 'fork',  finStyle: 'small' },
+    { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 2.8, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
     { name: 'Guppy',          sizeInches: 1.5, level: 1, body: '#e68a00', fin: '#ff5533', belly: '#ffe0a0', speed: 55, aspect: 2.5, tailStyle: 'fan',   finStyle: 'small' },
     { name: 'Platy',          sizeInches: 2,   level: 2, body: '#e64040', fin: '#cc3030', belly: '#ffa070', speed: 50, aspect: 2.2, tailStyle: 'fan',   finStyle: 'medium' },
     { name: 'Danio',          sizeInches: 1.5, level: 2, body: '#3070dd', fin: '#4090ff', belly: '#d0e8ff', speed: 70, aspect: 3.0, tailStyle: 'fork',  finStyle: 'small' },
@@ -24,9 +24,10 @@ export const SPECIES_CATALOG = [
 let nextFishId = 1;
 
 export class Fish {
-    constructor(species, x, y, z) {
+    constructor(species, x, y, z, name) {
         this.id = nextFishId++;
         this.species = species;
+        this.name = name || '';
         this.x = x ?? rand(15, 85);
         this.y = y ?? rand(15, 80);
         this.z = z ?? rand(15, 85);
@@ -141,15 +142,17 @@ export class Fish {
     updateAI(dt) {
         const foods = getFoods();
 
-        // Check for nearby food
-        if (this.state === 'wandering' && this.hunger > 30 && foods.length > 0) {
+        // Check for nearby food — only if actually hungry (not full)
+        if (this.state === 'wandering' && this.hunger > 40 && foods.length > 0) {
             let nearest = null, nearDist = Infinity;
             for (const f of foods) {
                 if (f.eaten) continue;
                 const d = dist(this.x, this.z, f.x, f.z);
                 if (d < nearDist) { nearDist = d; nearest = f; }
             }
-            if (nearest && nearDist < 60) {
+            // Hungrier fish detect food from farther away
+            const detectRange = 30 + this.hunger;
+            if (nearest && nearDist < detectRange) {
                 this.state = 'seeking_food';
                 this.seekTarget = nearest;
             }
@@ -279,6 +282,50 @@ export class Fish {
         ctx.fill();
         ctx.globalAlpha = this.leaving ? 1 - this.leaveProgress : 1;
 
+        // Neon glow stripe
+        if (this.species.glowStripe) {
+            const sc = this.species.glowStripe;
+            const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
+            // Wide soft bloom
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = baseAlpha * 0.5;
+            ctx.strokeStyle = sc;
+            ctx.lineWidth = bodyH * 0.9;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = sc;
+            ctx.shadowBlur = bodyH * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
+            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.stroke();
+            ctx.restore();
+            // Bright core stripe
+            ctx.save();
+            ctx.globalAlpha = baseAlpha;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = bodyH * 0.22;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = sc;
+            ctx.shadowBlur = bodyH * 1.2;
+            ctx.beginPath();
+            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
+            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.stroke();
+            ctx.restore();
+            // Saturated color layer on top
+            ctx.save();
+            ctx.globalAlpha = baseAlpha * 0.8;
+            ctx.strokeStyle = sc;
+            ctx.lineWidth = bodyH * 0.35;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
+            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         // Dorsal fin
         ctx.fillStyle = finColor;
         ctx.beginPath();
@@ -373,14 +420,57 @@ export class Fish {
                           0, -bodyLen * 0.6);
         ctx.fill();
 
-        // Dorsal stripe
-        ctx.strokeStyle = finColor;
-        ctx.lineWidth = bodyW * 0.3;
-        ctx.globalAlpha = (this.leaving ? 1 - this.leaveProgress : 1) * 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, -bodyLen * 0.4);
-        ctx.lineTo(0, bodyLen * 0.3);
-        ctx.stroke();
+        // Dorsal stripe / glow stripe
+        if (this.species.glowStripe) {
+            const sc = this.species.glowStripe;
+            const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
+            // Wide soft bloom
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = baseAlpha * 0.5;
+            ctx.strokeStyle = sc;
+            ctx.lineWidth = bodyW * 1.2;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = sc;
+            ctx.shadowBlur = bodyW * 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -bodyLen * 0.4);
+            ctx.lineTo(0, bodyLen * 0.3);
+            ctx.stroke();
+            ctx.restore();
+            // White core
+            ctx.save();
+            ctx.globalAlpha = baseAlpha;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = bodyW * 0.2;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = sc;
+            ctx.shadowBlur = bodyW * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -bodyLen * 0.4);
+            ctx.lineTo(0, bodyLen * 0.3);
+            ctx.stroke();
+            ctx.restore();
+            // Saturated color layer
+            ctx.save();
+            ctx.globalAlpha = baseAlpha * 0.8;
+            ctx.strokeStyle = sc;
+            ctx.lineWidth = bodyW * 0.4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(0, -bodyLen * 0.4);
+            ctx.lineTo(0, bodyLen * 0.3);
+            ctx.stroke();
+            ctx.restore();
+        } else {
+            ctx.strokeStyle = finColor;
+            ctx.lineWidth = bodyW * 0.3;
+            ctx.globalAlpha = (this.leaving ? 1 - this.leaveProgress : 1) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -bodyLen * 0.4);
+            ctx.lineTo(0, bodyLen * 0.3);
+            ctx.stroke();
+        }
         ctx.globalAlpha = this.leaving ? 1 - this.leaveProgress : 1;
 
         // Pectoral fins (splayed)
@@ -413,10 +503,18 @@ export class Fish {
         ctx.restore();
     }
 
+    // Display name: "Bubbles (Neon Tetra)" or just "Neon Tetra"
+    displayName() {
+        return this.name
+            ? `${this.name} (${this.species.name})`
+            : this.species.name;
+    }
+
     // Save/load helpers
     serialize() {
         return {
             speciesName: this.species.name,
+            name: this.name,
             x: this.x, y: this.y, z: this.z,
             heading: this.heading,
             currentSize: this.currentSize,
@@ -430,7 +528,7 @@ export class Fish {
     static deserialize(data) {
         const species = SPECIES_CATALOG.find(s => s.name === data.speciesName);
         if (!species) return null;
-        const f = new Fish(species, data.x, data.y, data.z);
+        const f = new Fish(species, data.x, data.y, data.z, data.name);
         f.heading = data.heading ?? f.heading;
         f.targetHeading = f.heading;
         f.currentSize = data.currentSize ?? species.sizeInches * 0.6;

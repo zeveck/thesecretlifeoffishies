@@ -2,7 +2,8 @@
 
 import { getTank, doWaterChange } from './tank.js';
 import { getProgression, addXP, getXPProgress, getCurrentLevelInfo,
-         getAllSpecies, canAddFish, getCurrentStockInches, getTankCapacity } from './store.js';
+         getAllSpecies, canAddFish, getCurrentStockInches, getTankCapacity,
+         getCoins, getPellets, spendCoins, fishCost, buyFoodPack, addCoins } from './store.js';
 import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
 
@@ -34,6 +35,7 @@ export function initUI(fishes, addFishCallback) {
     document.getElementById('btn-water-change').addEventListener('click', () => {
         doWaterChange();
         addXP(10);
+        addCoins(5);
         refreshTankStats();
     });
 
@@ -86,34 +88,66 @@ function refreshStore() {
     const cap = document.getElementById('store-capacity');
     const used = getCurrentStockInches(fishesRef);
     const total = getTankCapacity();
+    const coins = getCoins();
     cap.textContent = `Tank: ${used.toFixed(1)} / ${total}" stocked`;
 
     list.innerHTML = '';
+
+    // Food pack button
+    const foodBtn = document.createElement('div');
+    const canAffordFood = coins >= 5;
+    foodBtn.className = 'store-item' + (canAffordFood ? '' : ' locked');
+    foodBtn.innerHTML = `
+        <div class="preview" style="background:#a0c8a0;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#1a3a1a">&#8226;</div>
+        <div class="info">
+            <div class="name">Buy Food Pack</div>
+            <div class="detail">10 pellets &mdash; 5 coins${!canAffordFood ? ' (need ' + (5 - coins) + ' more)' : ''}</div>
+        </div>
+    `;
+    if (canAffordFood) {
+        foodBtn.addEventListener('click', () => {
+            buyFoodPack();
+            refreshStore();
+        });
+    }
+    list.appendChild(foodBtn);
+
     for (const species of SPECIES_CATALOG) {
         const prog = getProgression();
         const available = species.level <= prog.level;
         const canAdd = canAddFish(fishesRef, species);
+        const cost = fishCost(species);
+        const canAfford = coins >= cost;
 
         const item = document.createElement('div');
-        item.className = 'store-item' + (available ? '' : ' locked');
+        const dimmed = !available || !canAdd || !canAfford;
+        item.className = 'store-item' + (dimmed ? ' locked' : '');
 
         const preview = document.createElement('div');
         preview.className = 'preview';
         preview.style.background = species.body;
 
+        let statusText = '';
+        if (!available) statusText = ' (locked)';
+        else if (!canAdd) statusText = ' (tank full)';
+        else if (!canAfford) statusText = ` (need ${cost - coins} coins)`;
+
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
             <div class="name">${species.name}</div>
-            <div class="detail">${species.sizeInches}" • Level ${species.level}${!available ? ' (locked)' : !canAdd ? ' (tank full)' : ''}</div>
+            <div class="detail">${species.sizeInches}" • Level ${species.level} • ${cost} coins${statusText}</div>
         `;
 
         item.appendChild(preview);
         item.appendChild(info);
 
-        if (available && canAdd) {
+        if (available && canAdd && canAfford) {
             item.addEventListener('click', () => {
-                if (onAddFish) onAddFish(species);
+                const name = prompt(`Name your ${species.name} (or leave blank):`);
+                if (name === null) return; // cancelled
+                if (!spendCoins(cost)) return; // double-check
+                if (onAddFish) onAddFish(species, name.trim());
                 refreshStore();
                 refreshMyFish();
             });
@@ -139,12 +173,24 @@ function refreshMyFish() {
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
-            <div class="name">${fish.species.name}</div>
+            <div class="name">${fish.displayName()}</div>
             <div class="detail">Size: ${fish.currentSize.toFixed(1)}" • Hunger: ${Math.round(fish.hunger)}% • Happy: ${Math.round(fish.happiness)}%</div>
         `;
 
         item.appendChild(dot);
         item.appendChild(info);
+
+        // Tap to rename
+        item.addEventListener('click', () => {
+            const newName = prompt(
+                `Rename your ${fish.species.name} (or leave blank for species name):`,
+                fish.name
+            );
+            if (newName === null) return; // cancelled
+            fish.name = newName.trim();
+            refreshMyFish();
+        });
+
         list.appendChild(item);
     }
 
@@ -167,6 +213,10 @@ export function updateHUD() {
     } else {
         indicator.style.background = '#4caf50';
     }
+
+    // Coin and pellet counters
+    document.getElementById('coin-count').textContent = '\u25CF ' + getCoins();
+    document.getElementById('pellet-count').textContent = '\u2022 ' + getPellets();
 
     // XP bar
     const xpProgress = getXPProgress();

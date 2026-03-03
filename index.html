@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Secret Life of Fishies</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,11 +25,13 @@
     <div id="hud">
         <div id="hud-top-left">
             <div id="water-indicator" title="Water quality"></div>
+            <span id="coin-count" title="Coins">&#9679; 0</span>
         </div>
         <div id="hud-top-right">
             <button id="menu-btn" aria-label="Menu">&#9776;</button>
         </div>
         <div id="hud-bottom">
+            <span id="pellet-count" title="Food pellets">&#8226; 5</span>
             <div id="xp-bar-container">
                 <div id="xp-bar"></div>
             </div>
@@ -53,7 +56,7 @@
                 <div class="stat-row"><label>Bacteria</label><div class="bar-bg"><div class="bar bacteria-bar"></div></div><span class="stat-val bacteria-val">0</span></div>
                 <div class="stat-row"><label>Algae</label><div class="bar-bg"><div class="bar algae-bar"></div></div><span class="stat-val algae-val">0</span></div>
                 <div class="tank-actions">
-                    <button id="btn-water-change">Change Water (+10 XP)</button>
+                    <button id="btn-water-change">Change Water (+10 XP, +5 coins)</button>
                     <label class="toggle-row">
                         <span>Free Feed Mode</span>
                         <input type="checkbox" id="toggle-free-feed">

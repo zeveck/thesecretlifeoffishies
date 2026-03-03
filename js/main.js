@@ -3,7 +3,7 @@
 import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineXP } from './store.js';
+import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen } from './ui.js';
@@ -60,11 +60,13 @@ function handleTap(px, py) {
     const viewAngle = getViewAngle();
 
     if (viewAngle > 0.5) {
-        // Top-down: place food
+        // Top-down: place food (costs a pellet)
         const fx = ((px - tankLeft) / tankW) * 100;
         const fz = ((py - tankTop) / tankH) * 100;
         if (fx > 0 && fx < 100 && fz > 0 && fz < 100) {
-            addFood(fx, fz, tankW, tankH, 100);
+            if (usePellet()) {
+                addFood(fx, fz);
+            }
         }
     } else {
         // Side view: try to boop a fish
@@ -126,8 +128,11 @@ function update(dt) {
         }
     }
 
-    // Passive XP
-    passiveXPTick(fishes.length);
+    // Passive XP + coins
+    const avgHappiness = fishes.length > 0
+        ? fishes.reduce((s, f) => s + f.happiness, 0) / fishes.length / 100
+        : 0;
+    passiveXPTick(fishes.length, avgHappiness);
 
     // Auto-save
     if (shouldAutoSave()) {
@@ -226,8 +231,8 @@ function getSaveState() {
 }
 
 // --- Add fish ---
-function addFishToTank(species) {
-    const fish = new Fish(species);
+function addFishToTank(species, name) {
+    const fish = new Fish(species, undefined, undefined, undefined, name);
     fishes.push(fish);
 }
 
@@ -251,13 +256,19 @@ function init() {
         if (offlineSec > 60) {
             const totalInches = fishes.reduce((s, f) => s + f.currentSize, 0);
             applyOfflineChemistry(offlineSec, totalInches);
-            applyOfflineXP(offlineSec, fishes.length);
+            const avgHappiness = fishes.length > 0
+                ? fishes.reduce((s, f) => s + f.happiness, 0) / fishes.length / 100
+                : 0;
+            applyOfflineRewards(offlineSec, fishes.length, avgHappiness);
             // Apply hunger
             for (const fish of fishes) {
                 fish.hunger = clamp(fish.hunger + offlineSec * 0.5, 0, 100);
                 fish.strength = clamp(fish.strength - offlineSec * 0.02, 0, 100);
             }
         }
+
+        // Daily pellet refresh
+        refreshDailyPellets();
 
         if (saved.settings) {
             getTank().freeFeed = saved.settings.freeFeed ?? false;
