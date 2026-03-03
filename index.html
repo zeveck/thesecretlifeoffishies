@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Secret Life of Fishies</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="tank"></canvas>
+
+    <!-- Start overlay for iOS orientation permission -->
+    <div id="start-overlay">
+        <div class="start-content">
+            <h1>Secret Life of Fishies</h1>
+            <p>Tilt your phone to change views!</p>
+            <button id="start-btn">Tap to Start</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div id="hud-top-left">
+            <div id="water-indicator" title="Water quality"></div>
+        </div>
+        <div id="hud-top-right">
+            <button id="menu-btn" aria-label="Menu">&#9776;</button>
+        </div>
+        <div id="hud-bottom">
+            <div id="xp-bar-container">
+                <div id="xp-bar"></div>
+            </div>
+            <div id="xp-label">Lv 1</div>
+        </div>
+    </div>
+
+    <!-- Drawer -->
+    <div id="drawer-overlay" class="hidden"></div>
+    <div id="drawer" class="hidden">
+        <div id="drawer-tabs">
+            <button class="tab active" data-tab="tank">Tank</button>
+            <button class="tab" data-tab="store">Store</button>
+            <button class="tab" data-tab="fish">My Fish</button>
+        </div>
+        <div id="drawer-content">
+            <div id="tab-tank" class="tab-panel active">
+                <h3>Water Chemistry</h3>
+                <div class="stat-row"><label>Ammonia</label><div class="bar-bg"><div class="bar ammonia-bar"></div></div><span class="stat-val ammonia-val">0</span></div>
+                <div class="stat-row"><label>Nitrite</label><div class="bar-bg"><div class="bar nitrite-bar"></div></div><span class="stat-val nitrite-val">0</span></div>
+                <div class="stat-row"><label>Nitrate</label><div class="bar-bg"><div class="bar nitrate-bar"></div></div><span class="stat-val nitrate-val">0</span></div>
+                <div class="stat-row"><label>Bacteria</label><div class="bar-bg"><div class="bar bacteria-bar"></div></div><span class="stat-val bacteria-val">0</span></div>
+                <div class="stat-row"><label>Algae</label><div class="bar-bg"><div class="bar algae-bar"></div></div><span class="stat-val algae-val">0</span></div>
+                <div class="tank-actions">
+                    <button id="btn-water-change">Change Water (+10 XP)</button>
+                    <label class="toggle-row">
+                        <span>Free Feed Mode</span>
+                        <input type="checkbox" id="toggle-free-feed">
+                    </label>
+                </div>
+            </div>
+            <div id="tab-store" class="tab-panel">
+                <h3>Fish Store</h3>
+                <div id="store-capacity"></div>
+                <div id="store-list"></div>
+            </div>
+            <div id="tab-fish" class="tab-panel">
+                <h3>My Fish</h3>
+                <div id="fish-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
