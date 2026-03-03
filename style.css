@@ -40,22 +40,22 @@ canvas#tank {
 /* HUD */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: auto; }
-#hud-top-left { position: absolute; top: 12px; left: 12px; }
 #hud-top-right { position: absolute; top: 12px; right: 12px; }
 #hud-bottom {
     position: absolute; bottom: 0; left: 0; right: 0;
-    display: flex; align-items: center; gap: 8px;
+    display: flex; flex-direction: column; gap: 4px;
     padding: 8px 12px;
 }
-
-#water-indicator {
-    width: 18px; height: 18px; border-radius: 50%;
-    background: #4caf50; border: 2px solid rgba(255,255,255,0.3);
-    transition: background 0.5s;
-}
-
-#hud-top-left {
+#coin-row, #xp-row {
     display: flex; align-items: center; gap: 8px;
+}
+#coin-bar-container {
+    flex: 1; height: 4px; background: rgba(255,255,255,0.1);
+    border-radius: 2px; overflow: hidden;
+}
+#coin-bar {
+    height: 100%; width: 0%; background: #f9d849;
+    transition: width 0.3s;
 }
 
 #coin-count {
@@ -182,13 +182,6 @@ canvas#tank {
 .fish-item .happiness-dot {
     width: 10px; height: 10px; border-radius: 50%;
     flex-shrink: 0;
-}
-
-/* Water quality label */
-#water-label {
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.35);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 /* Fish stats popup */

@@ -3,12 +3,12 @@
 import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets } from './store.js';
+import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls } from './orientation.js';
-import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges } from './effects.js';
+import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen } from './ui.js';
-import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave } from './save.js';
-import { clamp, dist } from './utils.js';
+import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
+import { clamp, dist, rand } from './utils.js';
 
 // --- State ---
 const canvas = document.getElementById('tank');
@@ -53,19 +53,28 @@ canvas.addEventListener('pointermove', (e) => {
     pointerY = e.clientY;
 });
 
-canvas.addEventListener('pointerup', () => { pointerDown = false; });
-canvas.addEventListener('pointercancel', () => { pointerDown = false; });
+canvas.addEventListener('pointerup', () => { pointerDown = false; clearFingerFollow(); });
+canvas.addEventListener('pointercancel', () => { pointerDown = false; clearFingerFollow(); });
 
 function handleTap(px, py) {
     const viewAngle = getViewAngle();
 
-    if (viewAngle > 0.5) {
-        // Top-down: place food (costs a pellet)
+    if (viewAngle > 0.65) {
+        // Top-down: place food or ripple
         const fx = ((px - tankLeft) / tankW) * 100;
         const fz = ((py - tankTop) / tankH) * 100;
         if (fx > 0 && fx < 100 && fz > 0 && fz < 100) {
             if (usePellet()) {
                 addFood(fx, fz);
+            } else {
+                // No food — tap the surface: ripple + slow attract
+                addRipple(fx, fz);
+                for (const fish of fishes) {
+                    if (fish.state === 'eating' || fish.state === 'seeking_food') continue;
+                    fish.wanderTarget = { x: fx, y: fish.y, z: fz };
+                    fish.state = 'wandering';
+                    fish.stateTimer = rand(2, 4);
+                }
             }
         }
     } else {
@@ -91,21 +100,30 @@ function handleTap(px, py) {
 
 // Finger follow for side view
 function updateFingerFollow() {
-    if (!pointerDown || getViewAngle() > 0.5) return;
+    if (!pointerDown || getViewAngle() > 0.65) return;
 
     const followRadius = Math.max(150, tankW * 0.2);
+    const targetX = ((pointerX - tankLeft) / tankW) * 100;
+    const targetY = ((pointerY - tankTop) / tankH) * 100;
     for (const fish of fishes) {
-        if (fish.state === 'booped' || fish.state === 'eating') continue;
+        if (fish.state === 'booped' || fish.state === 'eating' || fish.state === 'seeking_food') continue;
         const sx = tankLeft + (fish.x / 100) * tankW;
         const sy = tankTop + (fish.y / 100) * tankH;
         const d = dist(pointerX, pointerY, sx, sy);
         if (d < followRadius) {
-            // Fish follows finger
-            const targetX = ((pointerX - tankLeft) / tankW) * 100;
-            const targetY = ((pointerY - tankTop) / tankH) * 100;
-            fish.wanderTarget = { x: targetX, y: targetY, z: fish.z };
-            fish.state = 'wandering';
+            fish.followTarget = { x: targetX, y: targetY };
+            fish.state = 'following';
             fish.stateTimer = 0.5;
+        }
+    }
+}
+
+function clearFingerFollow() {
+    for (const fish of fishes) {
+        fish.followTarget = null;
+        if (fish.state === 'following') {
+            fish.state = 'wandering';
+            fish.stateTimer = rand(1.5, 3.5);
         }
     }
 }
@@ -165,11 +183,12 @@ function update(dt) {
         }
     }
 
-    // Passive XP + coins
-    const avgHappiness = fishes.length > 0
-        ? fishes.reduce((s, f) => s + f.happiness, 0) / fishes.length / 100
-        : 0;
-    passiveXPTick(fishes.length, avgHappiness);
+    // Passive XP
+    passiveXPTick(fishes.length);
+
+    // Swish meter (coin generation)
+    const totalHappiness = fishes.reduce((s, f) => s + f.happiness, 0);
+    updateSwishMeter(dt, totalHappiness);
 
     // Auto-save
     if (shouldAutoSave()) {
@@ -198,44 +217,29 @@ function render() {
     // Tank edges
     drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle);
 
+    const isTopDown = viewAngle > 0.65;
+
     // Food
     const foods = getFoods();
-    if (viewAngle < 0.3) {
-        for (const f of foods) drawFoodSide(ctx, f, tankLeft, tankTop, tankW, tankH);
-    } else if (viewAngle > 0.7) {
+    if (isTopDown) {
         for (const f of foods) drawFoodTop(ctx, f, tankLeft, tankTop, tankW, tankH);
     } else {
-        // Crossfade zone
-        const sideAlpha = 1 - (viewAngle - 0.3) / 0.4;
-        const topAlpha = (viewAngle - 0.3) / 0.4;
-        ctx.globalAlpha = sideAlpha;
         for (const f of foods) drawFoodSide(ctx, f, tankLeft, tankTop, tankW, tankH);
-        ctx.globalAlpha = topAlpha;
-        for (const f of foods) drawFoodTop(ctx, f, tankLeft, tankTop, tankW, tankH);
-        ctx.globalAlpha = 1;
     }
 
     // Fish
-    if (viewAngle < 0.3) {
-        for (const fish of fishes) fish.drawSide(ctx, tankLeft, tankTop, tankW, tankH);
-    } else if (viewAngle > 0.7) {
+    if (isTopDown) {
         for (const fish of fishes) fish.drawTop(ctx, tankLeft, tankTop, tankW, tankH);
     } else {
-        // Crossfade
-        const sideAlpha = 1 - (viewAngle - 0.3) / 0.4;
-        const topAlpha = (viewAngle - 0.3) / 0.4;
-        ctx.globalAlpha = sideAlpha;
         for (const fish of fishes) fish.drawSide(ctx, tankLeft, tankTop, tankW, tankH);
-        ctx.globalAlpha = topAlpha;
-        for (const fish of fishes) fish.drawTop(ctx, tankLeft, tankTop, tankW, tankH);
-        ctx.globalAlpha = 1;
     }
 
     // Bubbles
-    if (viewAngle < 0.5) {
-        drawBubblesSide(ctx, tankLeft, tankTop, tankW, tankH);
-    } else {
+    if (isTopDown) {
         drawBubblesTop(ctx, tankLeft, tankTop, tankW, tankH);
+        drawRipples(ctx, tankLeft, tankTop, tankW, tankH);
+    } else {
+        drawBubblesSide(ctx, tankLeft, tankTop, tankW, tankH);
     }
 }
 
@@ -293,10 +297,8 @@ function init() {
         if (offlineSec > 60) {
             const totalInches = fishes.reduce((s, f) => s + f.currentSize, 0);
             applyOfflineChemistry(offlineSec, totalInches);
-            const avgHappiness = fishes.length > 0
-                ? fishes.reduce((s, f) => s + f.happiness, 0) / fishes.length / 100
-                : 0;
-            applyOfflineRewards(offlineSec, fishes.length, avgHappiness);
+            const totalHappiness = fishes.reduce((s, f) => s + f.happiness, 0);
+            applyOfflineRewards(offlineSec, fishes.length, totalHappiness);
             // Apply hunger
             for (const fish of fishes) {
                 fish.hunger = clamp(fish.hunger + offlineSec * 0.5, 0, 100);
@@ -336,18 +338,23 @@ function init() {
     updateHUD();
 }
 
-// --- Start button (for orientation permission) ---
-document.getElementById('start-btn').addEventListener('click', async () => {
-    await requestOrientationPermission();
+// --- Start: skip overlay for returning players ---
+if (hasSave()) {
     document.getElementById('start-overlay').classList.add('hidden');
-    init();
-});
-
-// Also allow starting with any key on desktop
-document.addEventListener('keydown', function startOnKey(e) {
-    if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+    requestOrientationPermission().then(() => init());
+} else {
+    document.getElementById('start-btn').addEventListener('click', async () => {
+        await requestOrientationPermission();
         document.getElementById('start-overlay').classList.add('hidden');
         init();
-        document.removeEventListener('keydown', startOnKey);
-    }
-});
+    });
+
+    // Also allow starting with any key on desktop
+    document.addEventListener('keydown', function startOnKey(e) {
+        if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+            document.getElementById('start-overlay').classList.add('hidden');
+            init();
+            document.removeEventListener('keydown', startOnKey);
+        }
+    });
+}

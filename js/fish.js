@@ -55,6 +55,8 @@ export class Fish {
         this.distanceSwum = 0;
         this.xp = 0;
 
+        this.followTarget = null; // {x, y} for finger follow
+
         this.sadTimer = 0; // Tracks consecutive unhappy time
         this.leaving = false;
         this.leaveProgress = 0;
@@ -103,8 +105,10 @@ export class Fish {
         this.heading = lerpAngle(this.heading, this.targetHeading, 3 * dt);
         this.pitch = lerp(this.pitch, this.targetPitch, 3 * dt);
 
-        const happyBonus = 1 + (this.happiness / 100) * 0.3;
-        const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1) * happyBonus;
+        const happyBonus = 1 + (this.happiness / 100) * 0.5;
+        const waterQ = getWaterQuality();
+        const waterPenalty = waterQ < 0.7 ? Math.max(0.5, waterQ) : 1;
+        const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1) * happyBonus * waterPenalty;
         const moveSpeed = spd * 0.01 * dt; // normalize to tank % units
 
         if (this.state !== 'eating') {
@@ -152,8 +156,8 @@ export class Fish {
     updateAI(dt) {
         const foods = getFoods();
 
-        // Check for nearby food — only if actually hungry (not full)
-        if (this.state === 'wandering' && this.hunger > 25 && foods.length > 0) {
+        // Check for nearby food — only if not totally stuffed
+        if ((this.state === 'wandering' || this.state === 'following') && this.hunger > 5 && foods.length > 0) {
             let nearest = null, nearDist = Infinity;
             for (const f of foods) {
                 if (f.eaten) continue;
@@ -187,6 +191,20 @@ export class Fish {
             }
         }
 
+        if (this.state === 'following') {
+            if (!this.followTarget) {
+                this.state = 'wandering';
+                this.stateTimer = rand(1.5, 3.5);
+            } else {
+                const targetX = this.followTarget.x;
+                const targetY = this.followTarget.y;
+                this.wanderTarget = { x: targetX, y: targetY, z: this.z };
+                this.targetHeading = angleTo(this.x, this.z, targetX, this.z);
+                const dy = targetY - this.y;
+                this.targetPitch = clamp(dy * 0.05, -0.5, 0.5);
+            }
+        }
+
         if (this.state === 'wandering') {
             if (this.stateTimer <= 0) {
                 let tx, ty, tz;
@@ -197,11 +215,11 @@ export class Fish {
                     if (dist(this.x, this.z, tx, tz) >= 25) break;
                 }
                 this.wanderTarget = { x: tx, y: ty, z: tz };
-                this.stateTimer = rand(2, 5);
+                this.stateTimer = rand(1.5, 3.5);
             }
             this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
             const dy = this.wanderTarget.y - this.y;
-            this.targetPitch = clamp(dy * 0.03, -0.3, 0.3);
+            this.targetPitch = clamp(dy * 0.03, -0.3, 0.3) + Math.sin(this.tailPhase * 0.3) * 0.15;
         }
     }
 

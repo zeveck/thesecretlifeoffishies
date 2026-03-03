@@ -20,6 +20,7 @@ const progression = {
     coins: 0,
     pellets: 5,
     lastDailyRefresh: Date.now(),
+    swishProgress: 0,
 };
 
 export function getProgression() {
@@ -130,27 +131,39 @@ export function canAddFish(fishes, species) {
     return species.level <= progression.level && (used + species.sizeInches * 0.6) <= cap;
 }
 
-export function passiveXPTick(fishCount, averageHappiness) {
+export function updateSwishMeter(dt, totalHappiness) {
+    const rate = totalHappiness / 200; // progress per second
+    progression.swishProgress += rate * dt;
+    while (progression.swishProgress >= 100) {
+        progression.swishProgress -= 100;
+        addCoins(1);
+    }
+}
+
+export function getSwishProgress() {
+    return Math.min(progression.swishProgress / 100, 1);
+}
+
+export function passiveXPTick(fishCount) {
     const now = Date.now();
     const elapsed = (now - progression.lastPassiveTick) / 1000;
     if (elapsed >= 60) {
         const minutes = Math.floor(elapsed / 60);
         addXP(minutes * fishCount);
-        // +1 coin per fish per minute, scaled by average happiness (0-1)
-        const happinessScale = Math.max(0, Math.min(averageHappiness ?? 0, 1));
-        const coins = Math.floor(minutes * fishCount * happinessScale);
-        if (coins > 0) addCoins(coins);
         progression.lastPassiveTick = now;
     }
 }
 
-export function applyOfflineRewards(seconds, fishCount, averageHappiness) {
+export function applyOfflineRewards(seconds, fishCount, totalHappiness) {
     const minutes = Math.min(Math.floor(seconds / 60), 1440); // cap at 24h
     addXP(minutes * fishCount);
-    // Offline coin catch-up: same passive formula
-    const happinessScale = Math.max(0, Math.min(averageHappiness ?? 0, 1));
-    const coins = Math.floor(minutes * fishCount * happinessScale);
-    if (coins > 0) addCoins(coins);
+    // Offline swish catch-up
+    const rate = totalHappiness / 200;
+    progression.swishProgress += rate * seconds;
+    while (progression.swishProgress >= 100) {
+        progression.swishProgress -= 100;
+        addCoins(1);
+    }
 }
 
 export function loadProgression(data) {
@@ -161,6 +174,7 @@ export function loadProgression(data) {
     progression.coins = data.coins ?? 0;
     progression.pellets = data.pellets ?? 5;
     progression.lastDailyRefresh = data.lastDailyRefresh ?? Date.now();
+    progression.swishProgress = data.swishProgress ?? 0;
     checkLevelUp();
 }
 

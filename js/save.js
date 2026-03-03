@@ -34,6 +34,10 @@ export function loadGame() {
     }
 }
 
+export function hasSave() {
+    return localStorage.getItem(SAVE_KEY) !== null;
+}
+
 export function getOfflineSeconds() {
     const data = loadGame();
     if (!data || !data.timestamp) return 0;

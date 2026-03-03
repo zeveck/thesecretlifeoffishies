@@ -3,6 +3,17 @@
 import { rand, clamp, lerp } from './utils.js';
 import { getTank } from './tank.js';
 
+// Ripples (surface taps)
+const ripples = [];
+
+export function addRipple(x, z) {
+    ripples.push({ x, z, age: 0, maxAge: 1.5 });
+}
+
+export function getRipples() {
+    return ripples;
+}
+
 // Bubbles
 const bubbles = [];
 const MAX_BUBBLES = 30;
@@ -33,6 +44,12 @@ for (let i = 0; i < 8; i++) {
 }
 
 export function updateEffects(dt) {
+    // Update ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+        ripples[i].age += dt;
+        if (ripples[i].age >= ripples[i].maxAge) ripples.splice(i, 1);
+    }
+
     // Update bubbles
     for (let i = bubbles.length - 1; i >= 0; i--) {
         const b = bubbles[i];
@@ -147,6 +164,29 @@ export function drawBubblesTop(ctx, tankLeft, tankTop, tankW, tankH) {
         ctx.beginPath();
         ctx.arc(bx, by, b.size * 0.8, 0, Math.PI * 2);
         ctx.fill();
+    }
+    ctx.restore();
+}
+
+export function drawRipples(ctx, tankLeft, tankTop, tankW, tankH) {
+    ctx.save();
+    for (const r of ripples) {
+        const rx = tankLeft + (r.x / 100) * tankW;
+        const ry = tankTop + (r.z / 100) * tankH;
+        const t = r.age / r.maxAge;
+        const alpha = 1 - t;
+        const radius = 5 + t * 40;
+        ctx.strokeStyle = `rgba(180, 220, 255, ${alpha * 0.4})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(rx, ry, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        if (t > 0.2) {
+            ctx.strokeStyle = `rgba(180, 220, 255, ${alpha * 0.2})`;
+            ctx.beginPath();
+            ctx.arc(rx, ry, radius * 0.6, 0, Math.PI * 2);
+            ctx.stroke();
+        }
     }
     ctx.restore();
 }

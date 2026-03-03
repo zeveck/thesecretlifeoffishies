@@ -3,7 +3,8 @@
 import { getTank, doWaterChange } from './tank.js';
 import { getProgression, addXP, getXPProgress, getCurrentLevelInfo,
          getAllSpecies, canAddFish, getCurrentStockInches, getTankCapacity,
-         getCoins, getPellets, spendCoins, fishCost, buyFoodPack, addCoins } from './store.js';
+         getCoins, getPellets, spendCoins, fishCost, buyFoodPack, addCoins,
+         getSwishProgress } from './store.js';
 import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
 
@@ -200,27 +201,15 @@ function refreshMyFish() {
 }
 
 export function updateHUD() {
-    const tank = getTank();
     const prog = getProgression();
-
-    // Water quality indicator + label
-    const maxToxic = Math.max(tank.ammonia, tank.nitrite);
-    const indicator = document.getElementById('water-indicator');
-    const waterLabel = document.getElementById('water-label');
-    if (maxToxic > 40) {
-        indicator.style.background = '#ef5350';
-        if (waterLabel) waterLabel.textContent = 'Dirty!';
-    } else if (maxToxic > 20 || tank.nitrate > 40) {
-        indicator.style.background = '#f9a825';
-        if (waterLabel) waterLabel.textContent = 'Okay';
-    } else {
-        indicator.style.background = '#4caf50';
-        if (waterLabel) waterLabel.textContent = 'Clean';
-    }
 
     // Coin and pellet counters
     document.getElementById('coin-count').textContent = '\u25CF ' + getCoins();
     document.getElementById('pellet-count').textContent = '\u2022 ' + getPellets();
+
+    // Coin (swish) bar
+    const swishProgress = getSwishProgress();
+    document.getElementById('coin-bar').style.width = (swishProgress * 100) + '%';
 
     // XP bar
     const xpProgress = getXPProgress();
