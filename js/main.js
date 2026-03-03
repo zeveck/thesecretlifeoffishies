@@ -57,6 +57,11 @@ canvas.addEventListener('pointerup', () => { pointerDown = false; clearFingerFol
 canvas.addEventListener('pointercancel', () => { pointerDown = false; clearFingerFollow(); });
 
 function handleTap(px, py) {
+    // Dismiss fish stats popup on any tap
+    const popup = document.getElementById('fish-stats-popup');
+    if (popup) popup.classList.remove('visible');
+    if (statsTimeout) { clearTimeout(statsTimeout); statsTimeout = null; }
+
     const viewAngle = getViewAngle();
 
     if (viewAngle > 0.65) {
