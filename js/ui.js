@@ -203,15 +203,19 @@ export function updateHUD() {
     const tank = getTank();
     const prog = getProgression();
 
-    // Water quality indicator
+    // Water quality indicator + label
     const maxToxic = Math.max(tank.ammonia, tank.nitrite);
     const indicator = document.getElementById('water-indicator');
+    const waterLabel = document.getElementById('water-label');
     if (maxToxic > 40) {
         indicator.style.background = '#ef5350';
+        if (waterLabel) waterLabel.textContent = 'Dirty!';
     } else if (maxToxic > 20 || tank.nitrate > 40) {
         indicator.style.background = '#f9a825';
+        if (waterLabel) waterLabel.textContent = 'Okay';
     } else {
         indicator.style.background = '#4caf50';
+        if (waterLabel) waterLabel.textContent = 'Clean';
     }
 
     // Coin and pellet counters

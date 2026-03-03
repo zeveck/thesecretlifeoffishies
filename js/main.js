@@ -82,6 +82,7 @@ function handleTap(px, py) {
                     addXP(1);
                     fish.lastBoopXP = now;
                 }
+                showFishStats(fish, sx, sy);
                 break;
             }
         }
@@ -92,12 +93,13 @@ function handleTap(px, py) {
 function updateFingerFollow() {
     if (!pointerDown || getViewAngle() > 0.5) return;
 
+    const followRadius = Math.max(150, tankW * 0.2);
     for (const fish of fishes) {
-        if (fish.state === 'booped') continue;
+        if (fish.state === 'booped' || fish.state === 'eating') continue;
         const sx = tankLeft + (fish.x / 100) * tankW;
         const sy = tankTop + (fish.y / 100) * tankH;
         const d = dist(pointerX, pointerY, sx, sy);
-        if (d < 100) {
+        if (d < followRadius) {
             // Fish follows finger
             const targetX = ((pointerX - tankLeft) / tankW) * 100;
             const targetY = ((pointerY - tankTop) / tankH) * 100;
@@ -106,6 +108,41 @@ function updateFingerFollow() {
             fish.stateTimer = 0.5;
         }
     }
+}
+
+// --- Stats popup ---
+let statsTimeout = null;
+function showFishStats(fish, screenX, screenY) {
+    const popup = document.getElementById('fish-stats-popup');
+    if (!popup) return;
+
+    const mood = fish.happiness > 70 ? 'Happy' :
+                 fish.happiness > 40 ? 'Content' :
+                 fish.happiness > 20 ? 'Stressed' : 'Miserable';
+
+    const totalInches = fish.distanceSwum;
+    const feet = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches % 12);
+    const distStr = feet > 0 ? `${feet}ft ${inches}in` : `${inches}in`;
+
+    popup.querySelector('.stats-name').textContent = fish.displayName();
+    popup.querySelector('.stats-body').innerHTML =
+        `<div>Mood: <b>${mood}</b></div>` +
+        `<div>Hunger: ${Math.round(fish.hunger)}%</div>` +
+        `<div>Size: ${fish.currentSize.toFixed(1)}"</div>` +
+        `<div>Strength: ${Math.round(fish.strength)}%</div>` +
+        `<div>Distance: ${distStr}</div>` +
+        `<div>XP: ${Math.round(fish.xp)}</div>`;
+
+    // Position above the fish
+    popup.style.left = screenX + 'px';
+    popup.style.top = (screenY - 20) + 'px';
+    popup.classList.add('visible');
+
+    if (statsTimeout) clearTimeout(statsTimeout);
+    statsTimeout = setTimeout(() => {
+        popup.classList.remove('visible');
+    }, 3000);
 }
 
 // --- Game loop ---

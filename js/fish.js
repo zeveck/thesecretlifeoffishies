@@ -39,7 +39,7 @@ export class Fish {
         this.currentSize = species.sizeInches * 0.6; // Start at 60%
         this.maxSize = species.sizeInches;
 
-        this.hunger = 20;  // 0–100
+        this.hunger = 50;  // 0–100
         this.strength = 80;
         this.happiness = 80;
 
@@ -51,6 +51,9 @@ export class Fish {
         this.boopTimer = 0;
         this.lastBoopXP = 0; // timestamp for XP cooldown
         this.eatingTimer = 0;
+
+        this.distanceSwum = 0;
+        this.xp = 0;
 
         this.sadTimer = 0; // Tracks consecutive unhappy time
         this.leaving = false;
@@ -100,13 +103,20 @@ export class Fish {
         this.heading = lerpAngle(this.heading, this.targetHeading, 3 * dt);
         this.pitch = lerp(this.pitch, this.targetPitch, 3 * dt);
 
-        const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1);
+        const happyBonus = 1 + (this.happiness / 100) * 0.3;
+        const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1) * happyBonus;
         const moveSpeed = spd * 0.01 * dt; // normalize to tank % units
 
         if (this.state !== 'eating') {
-            this.x += Math.cos(this.heading) * moveSpeed;
-            this.z += Math.sin(this.heading) * moveSpeed;
-            this.y += Math.sin(this.pitch) * moveSpeed * 0.5;
+            const dx = Math.cos(this.heading) * moveSpeed;
+            const dz = Math.sin(this.heading) * moveSpeed;
+            const dy = Math.sin(this.pitch) * moveSpeed * 0.5;
+            this.x += dx;
+            this.z += dz;
+            this.y += dy;
+            const moved = Math.sqrt(dx * dx + dz * dz + dy * dy);
+            this.distanceSwum += moved;
+            this.xp += moved * 0.1;
         }
 
         // Boundaries
@@ -143,7 +153,7 @@ export class Fish {
         const foods = getFoods();
 
         // Check for nearby food — only if actually hungry (not full)
-        if (this.state === 'wandering' && this.hunger > 40 && foods.length > 0) {
+        if (this.state === 'wandering' && this.hunger > 25 && foods.length > 0) {
             let nearest = null, nearDist = Infinity;
             for (const f of foods) {
                 if (f.eaten) continue;
@@ -151,7 +161,7 @@ export class Fish {
                 if (d < nearDist) { nearDist = d; nearest = f; }
             }
             // Hungrier fish detect food from farther away
-            const detectRange = 30 + this.hunger;
+            const detectRange = 50 + this.hunger;
             if (nearest && nearDist < detectRange) {
                 this.state = 'seeking_food';
                 this.seekTarget = nearest;
@@ -179,12 +189,15 @@ export class Fish {
 
         if (this.state === 'wandering') {
             if (this.stateTimer <= 0) {
-                this.wanderTarget = {
-                    x: rand(10, 90),
-                    y: rand(15, 85),
-                    z: rand(10, 90),
-                };
-                this.stateTimer = rand(3, 7);
+                let tx, ty, tz;
+                for (let attempt = 0; attempt < 5; attempt++) {
+                    tx = rand(10, 90);
+                    ty = rand(15, 85);
+                    tz = rand(10, 90);
+                    if (dist(this.x, this.z, tx, tz) >= 25) break;
+                }
+                this.wanderTarget = { x: tx, y: ty, z: tz };
+                this.stateTimer = rand(2, 5);
             }
             this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
             const dy = this.wanderTarget.y - this.y;
@@ -522,6 +535,8 @@ export class Fish {
             strength: this.strength,
             happiness: this.happiness,
             sadTimer: this.sadTimer,
+            distanceSwum: this.distanceSwum,
+            xp: this.xp,
         };
     }
 
@@ -532,10 +547,12 @@ export class Fish {
         f.heading = data.heading ?? f.heading;
         f.targetHeading = f.heading;
         f.currentSize = data.currentSize ?? species.sizeInches * 0.6;
-        f.hunger = data.hunger ?? 20;
+        f.hunger = data.hunger ?? 50;
         f.strength = data.strength ?? 80;
         f.happiness = data.happiness ?? 80;
         f.sadTimer = data.sadTimer ?? 0;
+        f.distanceSwum = data.distanceSwum ?? 0;
+        f.xp = data.xp ?? 0;
         return f;
     }
 
