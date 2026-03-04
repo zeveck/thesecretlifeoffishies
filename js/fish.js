@@ -5,7 +5,7 @@ import { getFoods } from './food.js';
 import { getWaterQuality } from './tank.js';
 
 export const SPECIES_CATALOG = [
-    { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 2.8, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
+    { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 3.2, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
     { name: 'Guppy',          sizeInches: 1.5, level: 1, body: '#e68a00', fin: '#ff5533', belly: '#ffe0a0', speed: 55, aspect: 2.5, tailStyle: 'fan',   finStyle: 'small' },
     { name: 'Platy',          sizeInches: 2,   level: 2, body: '#e64040', fin: '#cc3030', belly: '#ffa070', speed: 50, aspect: 2.2, tailStyle: 'fan',   finStyle: 'medium' },
     { name: 'Danio',          sizeInches: 1.5, level: 2, body: '#3070dd', fin: '#4090ff', belly: '#d0e8ff', speed: 70, aspect: 3.0, tailStyle: 'fork',  finStyle: 'small' },
@@ -294,11 +294,11 @@ export class Fish {
                               -bodyW * 1.1, bodyH * 0.1 + tailWag * bodyH * 0.5);
         } else if (this.species.tailStyle === 'fan') {
             ctx.moveTo(-bodyW * 0.6, 0);
-            ctx.bezierCurveTo(-bodyW * 0.9, -bodyH * 1.0 + tailWag * bodyH,
-                              -bodyW * 1.4, -bodyH * 0.8 + tailWag * bodyH,
-                              -bodyW * 1.2, 0 + tailWag * bodyH * 0.5);
-            ctx.bezierCurveTo(-bodyW * 1.4, bodyH * 0.8 + tailWag * bodyH,
-                              -bodyW * 0.9, bodyH * 1.0 + tailWag * bodyH,
+            ctx.bezierCurveTo(-bodyW * 1.1, -bodyH * 1.4 + tailWag * bodyH,
+                              -bodyW * 1.8, -bodyH * 1.1 + tailWag * bodyH,
+                              -bodyW * 1.5, 0 + tailWag * bodyH * 0.5);
+            ctx.bezierCurveTo(-bodyW * 1.8, bodyH * 1.1 + tailWag * bodyH,
+                              -bodyW * 1.1, bodyH * 1.4 + tailWag * bodyH,
                               -bodyW * 0.6, 0);
         } else if (this.species.tailStyle === 'sword') {
             ctx.moveTo(-bodyW * 0.7, 0);
@@ -337,42 +337,45 @@ export class Fish {
         if (this.species.glowStripe) {
             const sc = this.species.glowStripe;
             const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
+            const stripeL = -bodyW * 0.45;
+            const stripeR = bodyW * 0.2;
+            const stripeY = -bodyH * 0.15;
             // Wide soft bloom
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = baseAlpha * 0.5;
             ctx.strokeStyle = sc;
-            ctx.lineWidth = bodyH * 0.9;
+            ctx.lineWidth = bodyH * 0.4;
             ctx.lineCap = 'round';
             ctx.shadowColor = sc;
-            ctx.shadowBlur = bodyH * 1.5;
+            ctx.shadowBlur = bodyH * 1.0;
             ctx.beginPath();
-            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
-            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.moveTo(stripeL, stripeY);
+            ctx.lineTo(stripeR, stripeY);
             ctx.stroke();
             ctx.restore();
             // Bright core stripe
             ctx.save();
             ctx.globalAlpha = baseAlpha;
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = bodyH * 0.22;
+            ctx.lineWidth = bodyH * 0.15;
             ctx.lineCap = 'round';
             ctx.shadowColor = sc;
-            ctx.shadowBlur = bodyH * 1.2;
+            ctx.shadowBlur = bodyH * 0.9;
             ctx.beginPath();
-            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
-            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.moveTo(stripeL, stripeY);
+            ctx.lineTo(stripeR, stripeY);
             ctx.stroke();
             ctx.restore();
             // Saturated color layer on top
             ctx.save();
             ctx.globalAlpha = baseAlpha * 0.8;
             ctx.strokeStyle = sc;
-            ctx.lineWidth = bodyH * 0.35;
+            ctx.lineWidth = bodyH * 0.25;
             ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(-bodyW * 0.55, -bodyH * 0.05);
-            ctx.lineTo(bodyW * 0.5, -bodyH * 0.05);
+            ctx.moveTo(stripeL, stripeY);
+            ctx.lineTo(stripeR, stripeY);
             ctx.stroke();
             ctx.restore();
         }
