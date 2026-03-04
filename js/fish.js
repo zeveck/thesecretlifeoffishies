@@ -108,7 +108,7 @@ export class Fish {
         const happyBonus = 1 + (this.happiness / 100) * 0.5;
         const waterPenalty = waterQ < 0.7 ? Math.max(0.5, waterQ) : 1;
         const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1) * happyBonus * waterPenalty;
-        const moveSpeed = spd * 0.01 * dt; // normalize to tank % units
+        const moveSpeed = spd * 0.08 * dt; // normalize to tank % units
 
         if (this.state !== 'eating') {
             const dx = Math.cos(this.heading) * moveSpeed;
