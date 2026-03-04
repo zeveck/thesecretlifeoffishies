@@ -105,10 +105,15 @@ export class Fish {
         this.heading = lerpAngle(this.heading, this.targetHeading, 3 * dt);
         this.pitch = lerp(this.pitch, this.targetPitch, 3 * dt);
 
-        const happyBonus = 1 + (this.happiness / 100) * 0.5;
+        const happyBonus = 1 + (this.happiness / 100) * 1.0; // 1x–2x based on mood
         const waterPenalty = waterQ < 0.7 ? Math.max(0.5, waterQ) : 1;
-        const spd = this.speed * (this.hunger > 80 ? 0.5 : 1) * (this.state === 'seeking_food' ? 1.3 : 1) * happyBonus * waterPenalty;
-        const moveSpeed = spd * 0.08 * dt; // normalize to tank % units
+        const urgency = (this.state === 'seeking_food')
+            ? 1.5 + (this.hunger / 100) * 1.5   // 1.5x–3x: hungrier = faster chase
+            : (this.state === 'following')
+            ? 2.0
+            : 1;
+        const spd = this.speed * (this.hunger > 80 ? 0.6 : 1) * urgency * happyBonus * waterPenalty;
+        const moveSpeed = spd * 0.16 * dt; // normalize to tank % units
 
         if (this.state !== 'eating') {
             const dx = Math.cos(this.heading) * moveSpeed;
