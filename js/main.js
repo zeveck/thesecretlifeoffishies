@@ -64,7 +64,7 @@ function handleTap(px, py) {
 
     const viewAngle = getViewAngle();
 
-    if (viewAngle > 0.8) {
+    if (viewAngle > 0.9) {
         // Top-down: place food or ripple
         const fx = ((px - tankLeft) / tankW) * 100;
         const fz = ((py - tankTop) / tankH) * 100;
@@ -222,7 +222,7 @@ function render() {
     // Tank edges
     drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle);
 
-    const isTopDown = viewAngle > 0.8;
+    const isTopDown = viewAngle > 0.9;
 
     // Food
     const foods = getFoods();
