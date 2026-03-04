@@ -4,12 +4,12 @@ import { clamp, lerp } from './utils.js';
 
 let viewAngle = 0; // 0 = side view, 1 = top-down (start side)
 let targetViewAngle = 0;
-let isDesktop = false;
-let hasOrientation = false;
-let orientationEventsReceived = false;
+let isDesktop = true; // assume desktop until proven otherwise
+let orientationEventCount = 0;
 let permissionGranted = false;
 
 const SMOOTH_FACTOR = 0.08;
+const MIN_EVENTS_FOR_MOBILE = 3; // need several events to confirm real sensor
 
 export function getViewAngle() {
     return viewAngle;
@@ -29,7 +29,19 @@ export function updateOrientation() {
 
 function handleOrientation(e) {
     if (!permissionGranted) return;
-    orientationEventsReceived = true;
+    orientationEventCount++;
+
+    // Ignore early events — desktop Chrome fires a single event with beta=0
+    // which would flash top-down view. Require several consistent events.
+    if (orientationEventCount < MIN_EVENTS_FOR_MOBILE) return;
+
+    // Once we have real events, this is mobile
+    if (isDesktop) {
+        isDesktop = false;
+        const btn = document.getElementById('view-toggle-btn');
+        if (btn) btn.classList.add('hidden');
+    }
+
     // beta: 0 = flat (top-down), 90 = upright (side view)
     const beta = clamp(e.beta || 0, 0, 90);
     // Map: 0-20 = top-down, 60-90 = side view
@@ -44,7 +56,6 @@ export async function requestOrientationPermission() {
             if (perm === 'granted') {
                 permissionGranted = true;
                 window.addEventListener('deviceorientation', handleOrientation);
-                hasOrientation = true;
             }
         } catch (e) {
             console.log('Orientation permission denied');
@@ -52,7 +63,6 @@ export async function requestOrientationPermission() {
     } else if (typeof DeviceOrientationEvent !== 'undefined') {
         permissionGranted = true;
         window.addEventListener('deviceorientation', handleOrientation);
-        hasOrientation = true;
     }
 }
 
@@ -61,14 +71,13 @@ export function toggleView() {
 }
 
 export function initDesktopControls() {
-    // After 1.5s, if no real orientation events received, show desktop toggle
+    // Show toggle button after short delay — hide if mobile detected
     setTimeout(() => {
-        if (!orientationEventsReceived) {
-            isDesktop = true;
+        if (isDesktop) {
             const btn = document.getElementById('view-toggle-btn');
             if (btn) btn.classList.remove('hidden');
         }
-    }, 1500);
+    }, 500);
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'v' || e.key === 'V' || e.key === ' ') {
@@ -83,7 +92,7 @@ export function initDesktopControls() {
 }
 
 export function hasOrientationSupport() {
-    return hasOrientation;
+    return !isDesktop;
 }
 
 export function getIsDesktop() {

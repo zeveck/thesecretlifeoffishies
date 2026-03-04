@@ -3,7 +3,7 @@
 import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter } from './store.js';
+import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
@@ -326,6 +326,14 @@ function init() {
         addFishToTank(tetra);
         addFishToTank(guppy);
     }
+
+    // Level-up happiness boost
+    setOnLevelUp((newLevel, oldLevel) => {
+        for (const fish of fishes) {
+            fish.happiness = clamp(fish.happiness + 20, 0, 100);
+            fish.strength = clamp(fish.strength + 10, 0, 100);
+        }
+    });
 
     // Init UI
     initUI(fishes, addFishToTank, getSaveState);

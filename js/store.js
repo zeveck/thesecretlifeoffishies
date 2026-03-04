@@ -23,8 +23,14 @@ const progression = {
     swishProgress: 0,
 };
 
+let onLevelUpCallback = null;
+
 export function getProgression() {
     return progression;
+}
+
+export function setOnLevelUp(callback) {
+    onLevelUpCallback = callback;
 }
 
 export function addXP(amount) {
@@ -36,8 +42,10 @@ function checkLevelUp() {
     for (let i = LEVELS.length - 1; i >= 0; i--) {
         if (progression.xp >= LEVELS[i].xp) {
             if (progression.level !== LEVELS[i].level) {
+                const oldLevel = progression.level;
                 progression.level = LEVELS[i].level;
                 setTankSize(LEVELS[i].gallons, LEVELS[i].capacityInches);
+                if (onLevelUpCallback) onLevelUpCallback(progression.level, oldLevel);
             }
             break;
         }

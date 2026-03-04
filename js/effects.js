@@ -192,14 +192,6 @@ export function drawRipples(ctx, tankLeft, tankTop, tankW, tankH) {
 }
 
 export function drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(100, 160, 200, 0.15)';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = 'rgba(80, 140, 180, 0.1)';
-    ctx.shadowBlur = 10;
-    ctx.strokeRect(tankLeft, tankTop, tankW, tankH);
-    ctx.restore();
-
     // Algae on glass
     const tank = getTank();
     if (tank.algae > 20) {
