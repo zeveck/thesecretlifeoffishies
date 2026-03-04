@@ -102,8 +102,8 @@ export class Fish {
         this.updateAI(dt);
 
         // Movement
-        this.heading = lerpAngle(this.heading, this.targetHeading, 3 * dt);
-        this.pitch = lerp(this.pitch, this.targetPitch, 3 * dt);
+        this.heading = lerpAngle(this.heading, this.targetHeading, 5 * dt);
+        this.pitch = lerp(this.pitch, this.targetPitch, 5 * dt);
 
         const happyBonus = 1 + (this.happiness / 100) * 1.0; // 1x–2x based on mood
         const waterPenalty = waterQ < 0.7 ? Math.max(0.5, waterQ) : 1;
@@ -190,7 +190,7 @@ export class Fish {
             const dy = this.seekTarget.y - this.y;
             this.targetPitch = clamp(dy * 0.1, -1.0, 1.0);
             const d = dist(this.x, this.z, this.seekTarget.x, this.seekTarget.z);
-            if (d < 5 && Math.abs(dy) < 10) {
+            if (d < 5 && Math.abs(dy) < 5) {
                 this.seekTarget.eaten = true;
                 this.hunger = clamp(this.hunger - 25, 0, 100);
                 this.state = 'eating';
@@ -232,7 +232,7 @@ export class Fish {
             }
             this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
             const dy = this.wanderTarget.y - this.y;
-            this.targetPitch = clamp(dy * 0.03, -0.3, 0.3) + Math.sin(this.tailPhase * 0.3) * 0.15;
+            this.targetPitch = clamp(dy * 0.06, -0.4, 0.4) + Math.sin(this.tailPhase * 0.3) * 0.1;
         }
     }
 
@@ -261,6 +261,7 @@ export class Fish {
 
         ctx.save();
         ctx.translate(sx, sy);
+        ctx.rotate(facingRight ? -this.pitch : this.pitch);
         if (!facingRight) ctx.scale(-1, 1);
 
         if (this.leaving) {
