@@ -161,22 +161,46 @@ canvas#tank {
     width: 18px; height: 18px; accent-color: #4a9eff;
 }
 
-.tank-data { margin-top: 24px; }
+#drawer-footer {
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
 .data-buttons {
-    display: flex; gap: 8px; margin-bottom: 10px;
+    display: flex; gap: 8px;
 }
 .data-buttons button {
     flex: 1; padding: 8px; border: 1px solid #4a9eff;
     background: rgba(74, 158, 255, 0.1); color: #4a9eff;
-    border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+    border-radius: 8px; font-size: 0.75rem; cursor: pointer;
 }
 .data-buttons button:active { background: rgba(74, 158, 255, 0.25); }
 .danger-btn {
-    width: 100%; padding: 8px; border: 1px solid #ef5350;
-    background: rgba(239, 83, 80, 0.1); color: #ef5350;
-    border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+    border-color: #ef5350 !important;
+    background: rgba(239, 83, 80, 0.1) !important; color: #ef5350 !important;
 }
-.danger-btn:active { background: rgba(239, 83, 80, 0.25); }
+.danger-btn:active { background: rgba(239, 83, 80, 0.25) !important; }
+
+#confirm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+}
+#confirm-overlay.hidden { display: none; }
+#confirm-dialog {
+    background: #0f1d30; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 20px 24px;
+    max-width: 280px; text-align: center; color: #b0c8e0;
+}
+#confirm-message { font-size: 0.9rem; margin-bottom: 16px; line-height: 1.4; }
+.confirm-buttons { display: flex; gap: 10px; }
+.confirm-buttons button {
+    flex: 1; padding: 10px; border-radius: 8px;
+    font-size: 0.85rem; cursor: pointer;
+    border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+}
+.confirm-buttons button:active { background: rgba(74, 158, 255, 0.25); }
 
 /* Store list */
 #store-capacity {

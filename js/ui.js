@@ -82,12 +82,12 @@ export function initUI(fishes, addFishCallback, getSaveState) {
         fileInput.value = '';
     });
 
-    // Reset game
+    // Reset game — in-game confirm
     document.getElementById('btn-reset').addEventListener('click', () => {
-        if (confirm('Reset everything? All fish, coins, and progress will be lost.')) {
+        showConfirm('Reset everything? All fish, coins, and progress will be lost.', () => {
             clearSave();
             location.reload();
-        }
+        });
     });
 }
 
@@ -278,4 +278,24 @@ function setBar(selector, value) {
 function setText(selector, value) {
     const el = document.querySelector(selector);
     if (el) el.textContent = value;
+}
+
+function showConfirm(message, onConfirm) {
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-message').textContent = message;
+    overlay.classList.remove('hidden');
+
+    const ok = document.getElementById('confirm-ok');
+    const cancel = document.getElementById('confirm-cancel');
+
+    function cleanup() {
+        overlay.classList.add('hidden');
+        ok.removeEventListener('click', handleOk);
+        cancel.removeEventListener('click', handleCancel);
+    }
+    function handleOk() { cleanup(); onConfirm(); }
+    function handleCancel() { cleanup(); }
+
+    ok.addEventListener('click', handleOk);
+    cancel.addEventListener('click', handleCancel);
 }

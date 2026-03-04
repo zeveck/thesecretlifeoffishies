@@ -66,15 +66,6 @@
                         <input type="checkbox" id="toggle-free-feed">
                     </label>
                 </div>
-                <div class="tank-data">
-                    <h3>Data</h3>
-                    <div class="data-buttons">
-                        <button id="btn-export-save">Export Save</button>
-                        <button id="btn-import-save">Import Save</button>
-                    </div>
-                    <button id="btn-reset" class="danger-btn">Reset Game</button>
-                    <input type="file" id="import-file" accept=".json" hidden>
-                </div>
             </div>
             <div id="tab-store" class="tab-panel">
                 <h3>Fish Store</h3>
@@ -84,6 +75,25 @@
             <div id="tab-fish" class="tab-panel">
                 <h3>My Fish</h3>
                 <div id="fish-list"></div>
+            </div>
+        </div>
+        <div id="drawer-footer">
+            <div class="data-buttons">
+                <button id="btn-export-save">Export Save</button>
+                <button id="btn-import-save">Import Save</button>
+                <button id="btn-reset" class="danger-btn">Reset</button>
+            </div>
+            <input type="file" id="import-file" accept=".json" hidden>
+        </div>
+    </div>
+
+    <!-- Confirm dialog -->
+    <div id="confirm-overlay" class="hidden">
+        <div id="confirm-dialog">
+            <p id="confirm-message"></p>
+            <div class="confirm-buttons">
+                <button id="confirm-cancel">Cancel</button>
+                <button id="confirm-ok" class="danger-btn">Reset</button>
             </div>
         </div>
     </div>
