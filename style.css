@@ -40,19 +40,18 @@ canvas#tank {
 /* HUD */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: auto; }
-#hud-top-left { position: absolute; top: 12px; left: 12px; }
+#hud-top-left { position: absolute; top: 18px; left: 18px; }
 #view-toggle-btn {
     background: rgba(0,0,0,0.3); border: none; color: #cde;
-    font-size: 1.2rem; width: 40px; height: 40px;
-    border-radius: 8px; cursor: pointer; line-height: 1;
+    font-size: 0.9rem; width: 32px; height: 32px;
+    border-radius: 6px; cursor: pointer; line-height: 1;
 }
 #view-toggle-btn:active { background: rgba(0,0,0,0.5); }
 #view-toggle-btn.hidden { display: none; }
-#hud-top-right { position: absolute; top: 12px; right: 12px; }
+#hud-top-right { position: absolute; top: 18px; right: 18px; }
 #hud-bottom {
-    position: absolute; bottom: 0; left: 0; right: 0;
+    position: absolute; bottom: 14px; left: 18px; right: 18px;
     display: flex; flex-direction: column; gap: 4px;
-    padding: 8px 12px;
 }
 #coin-row, #xp-row {
     display: flex; align-items: center; gap: 8px;
@@ -103,8 +102,6 @@ canvas#tank {
 #xp-label {
     color: rgba(255,255,255,0.5); font-size: 0.7rem;
     white-space: nowrap;
-    text-align: right;
-    padding-right: 2px;
 }
 
 /* Drawer */
@@ -254,35 +251,6 @@ canvas#tank {
 }
 
 /* Fish stats popup */
-#fish-stats-popup {
-    position: fixed;
-    transform: translate(-50%, -100%);
-    background: rgba(10, 20, 35, 0.9);
-    border: 1px solid rgba(74, 158, 255, 0.3);
-    border-radius: 10px;
-    padding: 10px 14px;
-    z-index: 15;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.25s;
-    min-width: 130px;
-}
-#fish-stats-popup.visible { opacity: 1; }
-#fish-stats-popup .stats-name {
-    font-size: 0.8rem;
-    color: #c0d8e8;
-    font-weight: 600;
-    margin-bottom: 5px;
-    white-space: nowrap;
-}
-#fish-stats-popup .stats-body {
-    font-size: 0.7rem;
-    color: #8aa8c0;
-    line-height: 1.5;
-}
-#fish-stats-popup .stats-body b {
-    color: #c0d8e8;
-}
 
 /* View hint */
 .view-hint {

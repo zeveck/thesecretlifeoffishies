@@ -163,8 +163,6 @@ export function passiveXPTick(fishCount) {
 }
 
 export function applyOfflineRewards(seconds, fishCount, totalHappiness) {
-    const minutes = Math.min(Math.floor(seconds / 60), 1440); // cap at 24h
-    addXP(minutes * fishCount);
     // Offline swish catch-up — capped at 5 coins (cost of a food pack)
     const rate = totalHappiness / 200;
     progression.swishProgress += rate * seconds;

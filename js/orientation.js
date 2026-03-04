@@ -7,6 +7,7 @@ let targetViewAngle = 0;
 let isDesktop = true; // assume desktop until proven otherwise
 let orientationEventCount = 0;
 let permissionGranted = false;
+let suppressUntil = 0; // timestamp — ignore orientation events until this time
 
 const SMOOTH_FACTOR = 0.08;
 const MIN_EVENTS_FOR_MOBILE = 3; // need several events to confirm real sensor
@@ -29,6 +30,8 @@ export function updateOrientation() {
 
 function handleOrientation(e) {
     if (!permissionGranted) return;
+    if (Date.now() < suppressUntil) return;
+
     orientationEventCount++;
 
     // Ignore early events — desktop Chrome fires a single event with beta=0
@@ -78,6 +81,14 @@ export function initDesktopControls() {
             if (btn) btn.classList.remove('hidden');
         }
     }, 500);
+
+    // When returning to tab, suppress orientation events briefly
+    // (Chrome can fire stale/bogus events on tab focus)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && isDesktop) {
+            suppressUntil = Date.now() + 1000;
+        }
+    });
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'v' || e.key === 'V' || e.key === ' ') {

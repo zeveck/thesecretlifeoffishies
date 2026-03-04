@@ -3,6 +3,42 @@
 import { rand, clamp, lerp } from './utils.js';
 import { getTank } from './tank.js';
 
+// Boop sparkles
+const boopParticles = [];
+
+export function addBoopEffect(screenX, screenY) {
+    for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 / 8) * i + rand(-0.3, 0.3);
+        const speed = rand(40, 90);
+        boopParticles.push({
+            x: screenX, y: screenY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            age: 0, maxAge: rand(0.3, 0.6),
+            size: rand(2, 4),
+            hue: rand(30, 60), // golden sparkles
+        });
+    }
+}
+
+export function drawBoopEffects(ctx, dt) {
+    for (let i = boopParticles.length - 1; i >= 0; i--) {
+        const p = boopParticles[i];
+        p.age += dt;
+        if (p.age >= p.maxAge) { boopParticles.splice(i, 1); continue; }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 30 * dt; // slight gravity
+        const t = p.age / p.maxAge;
+        const alpha = 1 - t;
+        const size = p.size * (1 - t * 0.5);
+        ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // Ripples (surface taps)
 const ripples = [];
 
@@ -192,29 +228,9 @@ export function drawRipples(ctx, tankLeft, tankTop, tankW, tankH) {
 }
 
 export function drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle) {
-    // Algae on glass
-    const tank = getTank();
-    if (tank.algae > 20) {
-        const algaeAlpha = (tank.algae - 20) * 0.005;
-        ctx.save();
-        ctx.globalAlpha = clamp(algaeAlpha, 0, 0.3);
-        // Green patches along edges
-        ctx.fillStyle = '#2a6630';
-        const patchSize = 15;
-        for (let x = tankLeft; x < tankLeft + tankW; x += patchSize * 2) {
-            const h = rand(5, 15) * (tank.algae / 100);
-            ctx.fillRect(x, tankTop + tankH - h, patchSize, h);
-            ctx.fillRect(x, tankTop, patchSize, h * 0.5);
-        }
-        ctx.restore();
-    }
+    // Tank frame
+    ctx.strokeStyle = 'rgba(100, 160, 200, 0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(tankLeft, tankTop, tankW, tankH);
 
-    // Sand/gravel at bottom (side view)
-    if (viewAngle < 0.9) {
-        const grad = ctx.createLinearGradient(0, tankTop + tankH - 8, 0, tankTop + tankH);
-        grad.addColorStop(0, 'rgba(160, 140, 100, 0.3)');
-        grad.addColorStop(1, 'rgba(120, 100, 70, 0.5)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(tankLeft, tankTop + tankH - 6, tankW, 6);
-    }
 }

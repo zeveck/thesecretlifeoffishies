@@ -72,7 +72,7 @@ export class Fish {
         }
 
         // Hunger rises
-        this.hunger = clamp(this.hunger + 0.5 * dt, 0, 100);
+        this.hunger = clamp(this.hunger + 0.3 * dt, 0, 100);
 
         // Strength decays slowly
         this.strength = clamp(this.strength - 0.02 * dt, 0, 100);
@@ -105,13 +105,16 @@ export class Fish {
         this.heading = lerpAngle(this.heading, this.targetHeading, 5 * dt);
         this.pitch = lerp(this.pitch, this.targetPitch, 5 * dt);
 
-        const happyBonus = 1 + (this.happiness / 100) * 1.0; // 1x–2x based on mood
+        const isActive = this.state === 'seeking_food' || this.state === 'following';
+        const happyBonus = isActive
+            ? 1 + (this.happiness / 100) * 1.0   // 1x-2x when chasing food/finger
+            : 1 + (this.happiness / 100) * 0.3;  // 1x-1.3x when wandering
         const waterPenalty = waterQ < 0.7 ? Math.max(0.5, waterQ) : 1;
         const urgency = (this.state === 'seeking_food')
-            ? 1.5 + (this.hunger / 100) * 1.5   // 1.5x–3x: hungrier = faster chase
+            ? 1.5 + (this.hunger / 100) * 1.5   // 1.5x-3x: hungrier = faster chase
             : (this.state === 'following')
             ? 2.0
-            : 1;
+            : 0.8;
         const spd = this.speed * (this.hunger > 80 ? 0.6 : 1) * urgency * happyBonus * waterPenalty;
         const moveSpeed = spd * 0.16 * dt; // normalize to tank % units
 

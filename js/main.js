@@ -3,9 +3,9 @@
 import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
+import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView } from './orientation.js';
-import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples } from './effects.js';
+import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { clamp, dist, rand } from './utils.js';
@@ -57,11 +57,6 @@ canvas.addEventListener('pointerup', () => { pointerDown = false; clearFingerFol
 canvas.addEventListener('pointercancel', () => { pointerDown = false; clearFingerFollow(); });
 
 function handleTap(px, py) {
-    // Dismiss fish stats popup on any tap
-    const popup = document.getElementById('fish-stats-popup');
-    if (popup) popup.classList.remove('visible');
-    if (statsTimeout) { clearTimeout(statsTimeout); statsTimeout = null; }
-
     const viewAngle = getViewAngle();
 
     if (viewAngle > 0.9) {
@@ -71,6 +66,7 @@ function handleTap(px, py) {
         if (fx > 0 && fx < 100 && fz > 0 && fz < 100) {
             if (usePellet()) {
                 addFood(fx, fz);
+                addXP(1);
             } else {
                 // No food — tap the surface: ripple + slow attract
                 addRipple(fx, fz);
@@ -96,7 +92,7 @@ function handleTap(px, py) {
                     addXP(1);
                     fish.lastBoopXP = now;
                 }
-                showFishStats(fish, sx, sy);
+                addBoopEffect(sx, sy);
                 break;
             }
         }
@@ -133,41 +129,6 @@ function clearFingerFollow() {
     }
 }
 
-// --- Stats popup ---
-let statsTimeout = null;
-function showFishStats(fish, screenX, screenY) {
-    const popup = document.getElementById('fish-stats-popup');
-    if (!popup) return;
-
-    const mood = fish.happiness > 70 ? 'Happy' :
-                 fish.happiness > 40 ? 'Content' :
-                 fish.happiness > 20 ? 'Stressed' : 'Miserable';
-
-    const totalInches = fish.distanceSwum;
-    const feet = Math.floor(totalInches / 12);
-    const inches = Math.round(totalInches % 12);
-    const distStr = feet > 0 ? `${feet}ft ${inches}in` : `${inches}in`;
-
-    popup.querySelector('.stats-name').textContent = fish.displayName();
-    popup.querySelector('.stats-body').innerHTML =
-        `<div>Mood: <b>${mood}</b></div>` +
-        `<div>Hunger: ${Math.round(fish.hunger)}%</div>` +
-        `<div>Size: ${fish.currentSize.toFixed(1)}"</div>` +
-        `<div>Strength: ${Math.round(fish.strength)}%</div>` +
-        `<div>Distance: ${distStr}</div>` +
-        `<div>XP: ${Math.round(fish.xp)}</div>`;
-
-    // Position above the fish
-    popup.style.left = screenX + 'px';
-    popup.style.top = (screenY - 20) + 'px';
-    popup.classList.add('visible');
-
-    if (statsTimeout) clearTimeout(statsTimeout);
-    statsTimeout = setTimeout(() => {
-        popup.classList.remove('visible');
-    }, 3000);
-}
-
 // --- Game loop ---
 function update(dt) {
     gameTime += dt;
@@ -187,9 +148,6 @@ function update(dt) {
             fishes.splice(i, 1);
         }
     }
-
-    // Passive XP
-    passiveXPTick(fishes.length);
 
     // Swish meter (coin generation)
     const totalHappiness = fishes.reduce((s, f) => s + f.happiness, 0);
@@ -246,6 +204,9 @@ function render() {
     } else {
         drawBubblesSide(ctx, tankLeft, tankTop, tankW, tankH);
     }
+
+    // Boop sparkles
+    drawBoopEffects(ctx, TICK);
 }
 
 // Fixed timestep update, variable render
@@ -380,9 +341,11 @@ if (sharedParam) {
 // --- Start: skip overlay for returning players ---
 if (!sharedHandled) {
     if (hasSave()) {
-        document.getElementById('start-overlay').classList.add('hidden');
+        // Returning player — go straight into game
         requestOrientationPermission().then(() => init());
     } else {
+        // First time — show start overlay
+        document.getElementById('start-overlay').classList.remove('hidden');
         document.getElementById('start-btn').addEventListener('click', async () => {
             await requestOrientationPermission();
             document.getElementById('start-overlay').classList.add('hidden');

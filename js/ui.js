@@ -221,11 +221,21 @@ function refreshMyFish() {
         dot.style.background = fish.happiness > 60 ? '#4caf50' :
                                fish.happiness > 30 ? '#f9a825' : '#ef5350';
 
+        const mood = fish.happiness > 70 ? 'Happy' :
+                     fish.happiness > 40 ? 'Content' :
+                     fish.happiness > 20 ? 'Stressed' : 'Miserable';
+
+        const totalInches = fish.distanceSwum || 0;
+        const feet = Math.floor(totalInches / 12);
+        const inches = Math.round(totalInches % 12);
+        const distStr = feet > 0 ? `${feet}ft ${inches}in` : `${inches}in`;
+
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
             <div class="name">${fish.displayName()}</div>
-            <div class="detail">Size: ${fish.currentSize.toFixed(1)}" • Hunger: ${Math.round(fish.hunger)}% • Happy: ${Math.round(fish.happiness)}%</div>
+            <div class="detail">${mood} • Size: ${fish.currentSize.toFixed(1)}" • Hunger: ${Math.round(fish.hunger)}%</div>
+            <div class="detail">Strength: ${Math.round(fish.strength)}% • Swum: ${distStr}</div>
         `;
 
         item.appendChild(dot);
@@ -450,99 +460,42 @@ function drawConfirmFish() {
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Water background tint
-    ctx.fillStyle = 'rgba(10, 30, 60, 0.4)';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, 10);
-    ctx.fill();
+    // Pick a fish from the tank, or create a default Neon Tetra
+    let species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+    if (fishesRef && fishesRef.length > 0) {
+        species = fishesRef[Math.floor(Math.random() * fishesRef.length)].species;
+    }
 
-    // A few bubbles
-    ctx.fillStyle = 'rgba(120, 180, 255, 0.15)';
-    ctx.beginPath();
-    ctx.arc(45, 20, 6, 0, Math.PI * 2);
-    ctx.arc(38, 35, 4, 0, Math.PI * 2);
-    ctx.arc(50, 50, 3, 0, Math.PI * 2);
-    ctx.fill();
+    // Create a temporary fish and draw it scaled to fill the canvas
+    const fish = new Fish(species);
+    fish.x = 50;
+    fish.y = 50;
+    fish.happiness = 20; // sad desaturation
+    fish.heading = 0; // facing right
+    fish.tailPhase = 0;
+    fish.pitch = 0;
 
-    // Draw a sad fish facing right, center of canvas
-    const cx = w / 2 + 10, cy = h / 2;
-    const bodyW = 32, bodyH = 18;
+    // Scale up so the fish fills the canvas nicely
+    const rawPx = fish.currentSize * 20;
+    const targetPx = Math.min(w * 0.35, h * 0.7);
+    const scale = targetPx / rawPx;
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-w / 2, -h / 2);
+    fish.drawSide(ctx, 0, 0, w, h);
+    ctx.restore();
 
-    // Tail — desaturated blue
-    ctx.fillStyle = '#4a6080';
-    ctx.beginPath();
-    ctx.moveTo(cx - bodyW * 0.7, cy);
-    ctx.bezierCurveTo(cx - bodyW * 1.1, cy - bodyH * 0.7,
-                      cx - bodyW * 1.3, cy - bodyH * 0.5,
-                      cx - bodyW * 1.1, cy - bodyH * 0.05);
-    ctx.moveTo(cx - bodyW * 0.7, cy);
-    ctx.bezierCurveTo(cx - bodyW * 1.1, cy + bodyH * 0.7,
-                      cx - bodyW * 1.3, cy + bodyH * 0.5,
-                      cx - bodyW * 1.1, cy + bodyH * 0.05);
-    ctx.fill();
-
-    // Body
-    ctx.fillStyle = '#5080a0';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, bodyW, bodyH, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Belly highlight
-    ctx.fillStyle = '#8ab0c8';
-    ctx.globalAlpha = 0.35;
-    ctx.beginPath();
-    ctx.ellipse(cx + bodyW * 0.1, cy + bodyH * 0.2, bodyW * 0.6, bodyH * 0.4, 0, 0, Math.PI);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Dorsal fin
-    ctx.fillStyle = '#4a6080';
-    ctx.beginPath();
-    ctx.moveTo(cx - bodyW * 0.1, cy - bodyH * 0.9);
-    ctx.bezierCurveTo(cx, cy - bodyH * 1.4, cx + bodyW * 0.2, cy - bodyH * 1.3,
-                      cx + bodyW * 0.15, cy - bodyH * 0.85);
-    ctx.fill();
-
-    // Pectoral fin
-    ctx.fillStyle = '#4a6080';
-    ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(cx + bodyW * 0.15, cy + bodyH * 0.1);
-    ctx.bezierCurveTo(cx + bodyW * 0.4, cy + bodyH * 0.6,
-                      cx + bodyW * 0.2, cy + bodyH * 0.9,
-                      cx + bodyW * 0.05, cy + bodyH * 0.5);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Eye — sad looking (tilted down slightly)
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(cx + bodyW * 0.5, cy - bodyH * 0.15, bodyH * 0.28, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#222';
-    ctx.beginPath();
-    ctx.arc(cx + bodyW * 0.53, cy - bodyH * 0.08, bodyH * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Sad eyebrow (angled down toward nose)
-    ctx.strokeStyle = '#3a5068';
-    ctx.lineWidth = 2;
+    // Add a frown over the mouth area
+    const bodyW = targetPx * (species.aspect / 2);
+    const bodyH = targetPx * 0.5;
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx + bodyW * 0.35, cy - bodyH * 0.5);
-    ctx.lineTo(cx + bodyW * 0.6, cy - bodyH * 0.38);
+    ctx.arc(bodyW * 0.85, bodyH * 0.15, bodyH * 0.18, Math.PI + 0.5, Math.PI * 2 - 0.5);
     ctx.stroke();
-
-    // Frown
-    ctx.strokeStyle = '#3a5068';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(cx + bodyW * 0.75, cy + bodyH * 0.25, bodyH * 0.2, Math.PI + 0.5, Math.PI * 2 - 0.5);
-    ctx.stroke();
-
-    // Tear drop
-    ctx.fillStyle = 'rgba(100, 180, 255, 0.6)';
-    ctx.beginPath();
-    ctx.ellipse(cx + bodyW * 0.58, cy + bodyH * 0.2, 2, 3.5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.restore();
 }

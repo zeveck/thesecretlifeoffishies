@@ -4,8 +4,10 @@ const SAVE_KEY = 'fishies_save';
 const SAVE_INTERVAL = 30000; // 30 seconds
 
 let lastSaveTime = Date.now();
+let savingDisabled = false;
 
 export function saveGame(state) {
+    if (savingDisabled) return;
     try {
         const data = {
             version: 1,
@@ -39,6 +41,7 @@ export function hasSave() {
 }
 
 export function clearSave() {
+    savingDisabled = true;
     localStorage.removeItem(SAVE_KEY);
 }
 
