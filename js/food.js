@@ -3,8 +3,8 @@
 import { rand, clamp } from './utils.js';
 
 const foods = [];
-const FLOAT_TIME = 3;    // seconds floating at surface
-const SINK_SPEED = 5;    // tank-% per second (slower sink)
+const FLOAT_TIME = 1;    // seconds floating at surface
+const SINK_SPEED = 12;   // tank-% per second
 const DECAY_TIME = 30;   // seconds before food dissolves
 const WOBBLE_AMP = 1.5;
 const WOBBLE_FREQ = 3;
@@ -39,7 +39,7 @@ export function updateFood(dt, tankFloorY) {
         if (f.age > FLOAT_TIME && f.y < tankFloorY) {
             const sinkProgress = f.age - FLOAT_TIME;
             // Accelerate slowly at first
-            const speed = SINK_SPEED * Math.min(sinkProgress * 0.5, 1);
+            const speed = SINK_SPEED * Math.min(sinkProgress, 1);
             f.y += speed * dt;
             f.x += Math.sin(f.age * WOBBLE_FREQ + f.wobbleOffset) * WOBBLE_AMP * dt;
             if (f.y >= tankFloorY) {
