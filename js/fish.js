@@ -261,7 +261,7 @@ export class Fish {
 
         ctx.save();
         ctx.translate(sx, sy);
-        ctx.rotate(facingRight ? -this.pitch : this.pitch);
+        ctx.rotate(facingRight ? this.pitch : -this.pitch);
         if (!facingRight) ctx.scale(-1, 1);
 
         if (this.leaving) {
