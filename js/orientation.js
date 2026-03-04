@@ -2,9 +2,11 @@
 
 import { clamp, lerp } from './utils.js';
 
-let viewAngle = 0; // 0 = side view, 1 = top-down
+let viewAngle = 0; // 0 = side view, 1 = top-down (start side)
 let targetViewAngle = 0;
+let isDesktop = false;
 let hasOrientation = false;
+let orientationEventsReceived = false;
 let permissionGranted = false;
 
 const SMOOTH_FACTOR = 0.08;
@@ -27,6 +29,7 @@ export function updateOrientation() {
 
 function handleOrientation(e) {
     if (!permissionGranted) return;
+    orientationEventsReceived = true;
     // beta: 0 = flat (top-down), 90 = upright (side view)
     const beta = clamp(e.beta || 0, 0, 90);
     // Map: 0-20 = top-down, 60-90 = side view
@@ -49,21 +52,28 @@ export async function requestOrientationPermission() {
     } else if (typeof DeviceOrientationEvent !== 'undefined') {
         permissionGranted = true;
         window.addEventListener('deviceorientation', handleOrientation);
-        // Check if events actually fire
-        setTimeout(() => {
-            if (!hasOrientation) {
-                console.log('No orientation events — using desktop controls');
-            }
-        }, 1000);
         hasOrientation = true;
     }
 }
 
+export function toggleView() {
+    targetViewAngle = targetViewAngle > 0.5 ? 0 : 1;
+}
+
 export function initDesktopControls() {
+    // After 1.5s, if no real orientation events received, show desktop toggle
+    setTimeout(() => {
+        if (!orientationEventsReceived) {
+            isDesktop = true;
+            const btn = document.getElementById('view-toggle-btn');
+            if (btn) btn.classList.remove('hidden');
+        }
+    }, 1500);
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'v' || e.key === 'V' || e.key === ' ') {
             e.preventDefault();
-            targetViewAngle = targetViewAngle > 0.5 ? 0 : 1;
+            toggleView();
         }
     });
 
@@ -74,4 +84,8 @@ export function initDesktopControls() {
 
 export function hasOrientationSupport() {
     return hasOrientation;
+}
+
+export function getIsDesktop() {
+    return isDesktop;
 }

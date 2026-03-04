@@ -82,6 +82,9 @@
 
     <!-- HUD -->
     <div id="hud">
+        <div id="hud-top-left">
+            <button id="view-toggle-btn" class="hidden" aria-label="Toggle View">&#x1F441;</button>
+        </div>
         <div id="hud-top-right">
             <button id="menu-btn" aria-label="Menu">&#9776;</button>
         </div>
@@ -91,13 +94,14 @@
                 <div id="coin-bar-container">
                     <div id="coin-bar"></div>
                 </div>
+                <span id="happy-count" title="Average Happiness"></span>
             </div>
+            <div id="xp-label">Lv 1</div>
             <div id="xp-row">
                 <span id="pellet-count" title="Food pellets">&#8226; 5</span>
                 <div id="xp-bar-container">
                     <div id="xp-bar"></div>
                 </div>
-                <div id="xp-label">Lv 1</div>
             </div>
         </div>
     </div>

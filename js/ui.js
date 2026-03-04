@@ -253,9 +253,18 @@ function refreshMyFish() {
 export function updateHUD() {
     const prog = getProgression();
 
-    // Coin and pellet counters
+    // Coin, pellet, and happiness counters
     document.getElementById('coin-count').textContent = '\u25CF ' + getCoins();
     document.getElementById('pellet-count').textContent = '\u2022 ' + getPellets();
+
+    // Average happiness
+    const avgHappy = fishesRef && fishesRef.length > 0
+        ? Math.round(fishesRef.reduce((sum, f) => sum + f.happiness, 0) / fishesRef.length)
+        : 0;
+    const happyEl = document.getElementById('happy-count');
+    if (happyEl) {
+        happyEl.textContent = fishesRef && fishesRef.length > 0 ? `♥ ${avgHappy}%` : '';
+    }
 
     // Coin (swish) bar
     const swishProgress = getSwishProgress();
@@ -313,12 +322,15 @@ async function shareTank(buttonEl) {
     const speciesList = [...new Set(fishesRef.map(f => f.species.name))];
 
     // Build share text
+    const avgHappiness = fishCount > 0
+        ? Math.round(fishesRef.reduce((sum, f) => sum + f.happiness, 0) / fishCount)
+        : 0;
     let text = `🐟 My Aquarium — The Secret Life of Fishies\n\n`;
     text += `🏆 Level ${prog.level} • ${fishCount} fish\n`;
     if (speciesList.length > 0) {
         text += `🐠 ${speciesList.join(', ')}\n`;
     }
-    text += `💰 ${getCoins()} coins\n`;
+    text += `😊 Happiness: ${avgHappiness}%\n`;
 
     // Encode state for shareable link
     const encoded = encodeTankState(prog.level, fishesRef);

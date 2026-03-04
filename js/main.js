@@ -4,7 +4,7 @@ import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter } from './store.js';
-import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls } from './orientation.js';
+import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
@@ -335,6 +335,7 @@ function init() {
 
     // Desktop controls
     initDesktopControls();
+    document.getElementById('view-toggle-btn').addEventListener('click', toggleView);
 
     // Start game loop
     lastTime = performance.now();
