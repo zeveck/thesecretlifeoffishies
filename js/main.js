@@ -64,7 +64,7 @@ function handleTap(px, py) {
 
     const viewAngle = getViewAngle();
 
-    if (viewAngle > 0.65) {
+    if (viewAngle > 0.8) {
         // Top-down: place food or ripple
         const fx = ((px - tankLeft) / tankW) * 100;
         const fz = ((py - tankTop) / tankH) * 100;
@@ -105,7 +105,7 @@ function handleTap(px, py) {
 
 // Finger follow for side view
 function updateFingerFollow() {
-    if (!pointerDown || getViewAngle() > 0.65) return;
+    if (!pointerDown || getViewAngle() > 0.8) return;
 
     const followRadius = Math.max(150, tankW * 0.2);
     const targetX = ((pointerX - tankLeft) / tankW) * 100;
@@ -222,7 +222,7 @@ function render() {
     // Tank edges
     drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle);
 
-    const isTopDown = viewAngle > 0.65;
+    const isTopDown = viewAngle > 0.8;
 
     // Food
     const foods = getFoods();

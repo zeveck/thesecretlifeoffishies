@@ -80,7 +80,7 @@ export function updateEffects(dt) {
 export function drawWaterBackground(ctx, w, h, viewAngle) {
     const tank = getTank();
 
-    if (viewAngle < 0.5) {
+    if (viewAngle < 0.8) {
         // Side view — gradient from light at top to dark at bottom
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, '#1a4a6e');
@@ -113,8 +113,8 @@ export function drawWaterBackground(ctx, w, h, viewAngle) {
 }
 
 export function drawCaustics(ctx, w, h, viewAngle, time) {
-    if (viewAngle > 0.7) return; // Only visible in side-ish views
-    const alpha = viewAngle < 0.3 ? 0.08 : lerp(0.08, 0, (viewAngle - 0.3) / 0.4);
+    if (viewAngle > 0.8) return; // Only visible in side view
+    const alpha = viewAngle < 0.6 ? 0.08 : lerp(0.08, 0, (viewAngle - 0.6) / 0.2);
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -218,7 +218,7 @@ export function drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle) {
     }
 
     // Sand/gravel at bottom (side view)
-    if (viewAngle < 0.6) {
+    if (viewAngle < 0.8) {
         const grad = ctx.createLinearGradient(0, tankTop + tankH - 8, 0, tankTop + tankH);
         grad.addColorStop(0, 'rgba(160, 140, 100, 0.3)');
         grad.addColorStop(1, 'rgba(120, 100, 70, 0.5)');
