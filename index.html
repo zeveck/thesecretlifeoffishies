@@ -5,8 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>The Secret Life of Fishies</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+
+    <!-- Basic SEO -->
+    <title>The Secret Life of Fishies - Your Pocket Aquarium</title>
+    <meta name="description" content="Build your dream aquarium! Feed fish, watch them grow, and tilt your phone to peek from above. Earn coins, unlock new species, and keep your tank thriving.">
+    <link rel="canonical" href="https://thesecretlifeoffishies.com">
+    <meta name="theme-color" content="#4a9eff">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://thesecretlifeoffishies.com">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="The Secret Life of Fishies - Your Pocket Aquarium">
+    <meta property="og:description" content="Build your dream aquarium! Feed fish, watch them grow, and tilt your phone to peek from above. Earn coins, unlock new species, and keep your tank thriving.">
+    <meta property="og:image" content="https://thesecretlifeoffishies.com/social-card.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="The Secret Life of Fishies — colorful fish swimming in a dark aquarium">
+    <meta property="og:site_name" content="Zeveck">
+
+    <!-- Twitter/X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Secret Life of Fishies - Your Pocket Aquarium">
+    <meta name="twitter:description" content="Build your dream aquarium! Feed fish, watch them grow, and tilt your phone to peek from above. Earn coins, unlock new species, and keep your tank thriving.">
+    <meta name="twitter:image" content="https://thesecretlifeoffishies.com/social-card.jpg">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["VideoGame", "WebApplication"],
+      "name": "The Secret Life of Fishies",
+      "description": "Build your dream aquarium! Feed fish, watch them grow, and tilt your phone to peek from above. Earn coins, unlock new species, and keep your tank thriving.",
+      "url": "https://thesecretlifeoffishies.com",
+      "image": "https://thesecretlifeoffishies.com/social-card.jpg",
+      "browserRequirements": "Requires JavaScript",
+      "genre": ["Simulation", "Casual"],
+      "gamePlatform": "Web Browser",
+      "applicationCategory": "Game",
+      "operatingSystem": "Any",
+      "playMode": "SinglePlayer",
+      "inLanguage": "en",
+      "author": {
+        "@type": "Organization",
+        "name": "Zeveck"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      }
+    }
+    </script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -78,6 +137,7 @@
             </div>
         </div>
         <div id="drawer-footer">
+            <button id="btn-share">Share My Tank</button>
             <div class="data-buttons">
                 <button id="btn-export-save">Save</button>
                 <button id="btn-import-save">Load</button>

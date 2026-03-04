@@ -165,6 +165,13 @@ canvas#tank {
     padding: 10px 16px;
     border-top: 1px solid rgba(255,255,255,0.06);
 }
+#btn-share {
+    width: 100%; padding: 10px; border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+    margin-bottom: 8px;
+}
+#btn-share:active { background: rgba(74, 158, 255, 0.25); }
 .data-buttons {
     display: flex; gap: 8px;
 }

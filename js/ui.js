@@ -89,6 +89,11 @@ export function initUI(fishes, addFishCallback, getSaveState) {
             location.reload();
         });
     });
+
+    // Share button
+    document.getElementById('btn-share').addEventListener('click', () => {
+        shareTank(document.getElementById('btn-share'));
+    });
 }
 
 function toggleDrawer() {
@@ -300,6 +305,131 @@ function showConfirm(message, onConfirm) {
 
     ok.addEventListener('click', handleOk);
     cancel.addEventListener('click', handleCancel);
+}
+
+async function shareTank(buttonEl) {
+    const prog = getProgression();
+    const fishCount = fishesRef.length;
+    const speciesList = [...new Set(fishesRef.map(f => f.species.name))];
+
+    // Build share text
+    let text = `🐟 My Aquarium — The Secret Life of Fishies\n\n`;
+    text += `🏆 Level ${prog.level} • ${fishCount} fish\n`;
+    if (speciesList.length > 0) {
+        text += `🐠 ${speciesList.join(', ')}\n`;
+    }
+    text += `💰 ${getCoins()} coins\n`;
+
+    // Encode state for shareable link
+    const encoded = encodeTankState(prog.level, fishesRef);
+    const url = encoded
+        ? `https://thesecretlifeoffishies.com?s=${encoded}`
+        : 'https://thesecretlifeoffishies.com';
+    text += `\n${url}`;
+
+    const shareData = { title: 'The Secret Life of Fishies', text };
+
+    if (navigator.canShare && navigator.canShare(shareData)) {
+        try {
+            await navigator.share(shareData);
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+        }
+    }
+
+    try {
+        await navigator.clipboard.writeText(text);
+        showShareFeedback(buttonEl, 'Copied!');
+    } catch (err) {
+        // Fallback: select text
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.readOnly = true;
+        el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;width:80%;max-width:400px;padding:12px;font-size:14px;background:#0f1d30;color:#b0c8e0;border:1px solid #4a9eff;border-radius:8px;';
+        document.body.appendChild(el);
+        el.select();
+        el.addEventListener('blur', () => el.remove());
+    }
+}
+
+function showShareFeedback(buttonEl, message) {
+    const original = buttonEl.textContent;
+    buttonEl.textContent = `✓ ${message}`;
+    setTimeout(() => { buttonEl.textContent = original; }, 2000);
+}
+
+// Phase 3: State encoding for shareable links
+// Encodes level + up to 14 fish species (by catalog index) into base36
+function encodeTankState(level, fishes) {
+    try {
+        const catalogSize = SPECIES_CATALOG.length;
+        // Pack: level (3 bits) + fish count (4 bits) + species indices (4 bits each)
+        let value = BigInt(level & 0x7);
+        const fishList = fishes.slice(0, 14);
+        value = (value << 4n) | BigInt(fishList.length & 0xF);
+        for (const fish of fishList) {
+            const idx = SPECIES_CATALOG.indexOf(fish.species);
+            value = (value << 4n) | BigInt(idx >= 0 ? idx : 0);
+        }
+        // Checksum (sum of all nibbles mod 16)
+        let checksum = 0;
+        checksum += level;
+        checksum += fishList.length;
+        for (const fish of fishList) {
+            const idx = SPECIES_CATALOG.indexOf(fish.species);
+            checksum += idx >= 0 ? idx : 0;
+        }
+        value = (value << 4n) | BigInt(checksum & 0xF);
+        return value.toString(36);
+    } catch (e) {
+        return null;
+    }
+}
+
+export function decodeTankState(encoded) {
+    try {
+        let value = BigInt(parseInt(encoded, 36));
+        // Read checksum (last 4 bits)
+        const checksum = Number(value & 0xFn);
+        value >>= 4n;
+
+        // We need to read from MSB, but we packed LSB-last
+        // Re-parse: convert back to figure out bit length
+        // Easier: re-encode from the string
+        // Actually, let's unpack from the right (reverse order)
+        const nibbles = [];
+        let temp = value;
+        while (temp > 0n) {
+            nibbles.push(Number(temp & 0xFn));
+            temp >>= 4n;
+        }
+        nibbles.reverse();
+
+        if (nibbles.length < 2) return null;
+        const level = nibbles[0];
+        const fishCount = nibbles[1];
+        if (fishCount > 14 || level < 1 || level > 7) return null;
+        if (nibbles.length < 2 + fishCount) return null;
+
+        const speciesIndices = [];
+        let sum = level + fishCount;
+        for (let i = 0; i < fishCount; i++) {
+            const idx = nibbles[2 + i];
+            if (idx >= SPECIES_CATALOG.length) return null;
+            speciesIndices.push(idx);
+            sum += idx;
+        }
+
+        if ((sum & 0xF) !== checksum) return null;
+
+        return {
+            level,
+            fish: speciesIndices.map(i => SPECIES_CATALOG[i])
+        };
+    } catch (e) {
+        return null;
+    }
 }
 
 function drawConfirmFish() {

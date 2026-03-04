@@ -6,7 +6,7 @@ import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodT
 import { getProgression, addXP, passiveXPTick, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples } from './effects.js';
-import { initUI, updateHUD, isDrawerOpen } from './ui.js';
+import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { clamp, dist, rand } from './utils.js';
 
@@ -343,23 +343,50 @@ function init() {
     updateHUD();
 }
 
-// --- Start: skip overlay for returning players ---
-if (hasSave()) {
-    document.getElementById('start-overlay').classList.add('hidden');
-    requestOrientationPermission().then(() => init());
-} else {
-    document.getElementById('start-btn').addEventListener('click', async () => {
-        await requestOrientationPermission();
-        document.getElementById('start-overlay').classList.add('hidden');
-        init();
-    });
+// --- Check for shared tank link ---
+const sharedParam = new URLSearchParams(window.location.search).get('s');
+let sharedHandled = false;
+if (sharedParam) {
+    const sharedState = decodeTankState(sharedParam);
+    if (sharedState) {
+        sharedHandled = true;
+        const overlay = document.getElementById('start-overlay');
+        const content = overlay.querySelector('.start-content');
+        const fishList = sharedState.fish.map(s => s.name).join(', ');
+        content.innerHTML = `
+            <h1>Shared Aquarium</h1>
+            <p>Level ${sharedState.level} tank with ${sharedState.fish.length} fish</p>
+            <p style="font-size:0.8rem;opacity:0.6;margin-bottom:1rem">${fishList}</p>
+            <button id="start-btn" style="padding:0.8rem 2rem;font-size:1.1rem;border:2px solid #4a9eff;background:rgba(74,158,255,0.15);color:#4a9eff;border-radius:2rem;cursor:pointer">Play Now!</button>
+        `;
+        overlay.classList.remove('hidden');
+        document.getElementById('start-btn').addEventListener('click', () => {
+            window.history.replaceState({}, '', window.location.pathname);
+            overlay.classList.add('hidden');
+            init();
+        });
+    }
+}
 
-    // Also allow starting with any key on desktop
-    document.addEventListener('keydown', function startOnKey(e) {
-        if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+// --- Start: skip overlay for returning players ---
+if (!sharedHandled) {
+    if (hasSave()) {
+        document.getElementById('start-overlay').classList.add('hidden');
+        requestOrientationPermission().then(() => init());
+    } else {
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            await requestOrientationPermission();
             document.getElementById('start-overlay').classList.add('hidden');
             init();
-            document.removeEventListener('keydown', startOnKey);
-        }
-    });
+        });
+
+        // Also allow starting with any key on desktop
+        document.addEventListener('keydown', function startOnKey(e) {
+            if (!document.getElementById('start-overlay').classList.contains('hidden')) {
+                document.getElementById('start-overlay').classList.add('hidden');
+                init();
+                document.removeEventListener('keydown', startOnKey);
+            }
+        });
+    }
 }
