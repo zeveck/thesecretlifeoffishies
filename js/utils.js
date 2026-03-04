@@ -72,3 +72,15 @@ export function desaturate(hex, amount) {
         Math.round(lerp(b, gray, amount))
     );
 }
+
+// amount > 0 = more saturated, < 0 = less saturated
+export function adjustSaturation(hex, amount) {
+    const { r, g, b } = hexToRgb(hex);
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    // Lerp away from gray (boost) or toward gray (reduce)
+    return rgbaString(
+        clamp(Math.round(r + (r - gray) * amount), 0, 255),
+        clamp(Math.round(g + (g - gray) * amount), 0, 255),
+        clamp(Math.round(b + (b - gray) * amount), 0, 255)
+    );
+}

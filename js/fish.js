@@ -1,6 +1,6 @@
 // fish.js — Fish class: properties, AI, drawing (both views)
 
-import { lerp, clamp, rand, dist, angleTo, lerpAngle, normalizeAngle, desaturate } from './utils.js';
+import { lerp, clamp, rand, dist, angleTo, lerpAngle, normalizeAngle, desaturate, adjustSaturation } from './utils.js';
 import { getFoods } from './food.js';
 import { getWaterQuality } from './tank.js';
 
@@ -245,7 +245,10 @@ export class Fish {
         const facingRight = Math.cos(this.heading) >= 0;
         const dir = facingRight ? 1 : -1;
 
-        const saturationLoss = this.hunger > 60 ? (this.hunger - 60) / 80 : 0;
+        // Happiness-based saturation: <40 desaturates, 40-70 normal, >70 vivid
+        const satAdj = this.happiness > 70 ? (this.happiness - 70) / 100   // up to +0.3
+                      : this.happiness < 40 ? -(40 - this.happiness) / 60   // down to -0.67
+                      : 0;
 
         ctx.save();
         ctx.translate(sx, sy);
@@ -260,9 +263,9 @@ export class Fish {
         const tailWag = Math.sin(this.tailPhase) * 0.3;
 
         // Body color
-        const bodyColor = saturationLoss > 0 ? desaturate(this.species.body, saturationLoss) : this.species.body;
-        const bellyColor = saturationLoss > 0 ? desaturate(this.species.belly, saturationLoss) : this.species.belly;
-        const finColor = saturationLoss > 0 ? desaturate(this.species.fin, saturationLoss) : this.species.fin;
+        const bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
+        const bellyColor = satAdj !== 0 ? adjustSaturation(this.species.belly, satAdj) : this.species.belly;
+        const finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
 
         // Tail
         ctx.fillStyle = finColor;
@@ -415,9 +418,11 @@ export class Fish {
         const sx = tankLeft + (this.x / 100) * tankW;
         const sy = tankTop + (this.z / 100) * tankH;
 
-        const saturationLoss = this.hunger > 60 ? (this.hunger - 60) / 80 : 0;
-        const bodyColor = saturationLoss > 0 ? desaturate(this.species.body, saturationLoss) : this.species.body;
-        const finColor = saturationLoss > 0 ? desaturate(this.species.fin, saturationLoss) : this.species.fin;
+        const satAdj = this.happiness > 70 ? (this.happiness - 70) / 100
+                      : this.happiness < 40 ? -(40 - this.happiness) / 60
+                      : 0;
+        const bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
+        const finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
 
         const bodyLen = px * (this.species.aspect / 2);
         const bodyW = px * 0.3;
