@@ -190,7 +190,10 @@ canvas#tank {
 #confirm-dialog {
     background: #0f1d30; border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px; padding: 20px 24px;
-    max-width: 280px; text-align: center; color: #b0c8e0;
+    max-width: 300px; text-align: center; color: #b0c8e0;
+}
+#confirm-fish {
+    display: block; margin: 0 auto 12px;
 }
 #confirm-message { font-size: 0.9rem; margin-bottom: 16px; line-height: 1.4; }
 .confirm-buttons { display: flex; gap: 10px; }
