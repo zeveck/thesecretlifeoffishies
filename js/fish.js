@@ -116,9 +116,9 @@ export class Fish {
         const moveSpeed = spd * 0.16 * dt; // normalize to tank % units
 
         if (this.state !== 'eating') {
-            const dx = Math.cos(this.heading) * moveSpeed;
-            const dz = Math.sin(this.heading) * moveSpeed;
-            const dy = Math.sin(this.pitch) * moveSpeed * 0.5;
+            const dx = Math.cos(this.heading) * Math.cos(this.pitch) * moveSpeed;
+            const dz = Math.sin(this.heading) * Math.cos(this.pitch) * moveSpeed;
+            const dy = Math.sin(this.pitch) * moveSpeed;
             this.x += dx;
             this.z += dz;
             this.y += dy;
@@ -182,9 +182,13 @@ export class Fish {
                 this.stateTimer = rand(1, 3);
                 return;
             }
-            this.targetHeading = angleTo(this.x, this.z, this.seekTarget.x, this.seekTarget.z);
+            const fdx = this.seekTarget.x - this.x;
+            const fdz = this.seekTarget.z - this.z;
+            if (Math.abs(fdx) > 2 || Math.abs(fdz) > 2) {
+                this.targetHeading = angleTo(this.x, this.z, this.seekTarget.x, this.seekTarget.z);
+            }
             const dy = this.seekTarget.y - this.y;
-            this.targetPitch = clamp(dy * 0.05, -0.5, 0.5);
+            this.targetPitch = clamp(dy * 0.1, -1.0, 1.0);
             const d = dist(this.x, this.z, this.seekTarget.x, this.seekTarget.z);
             if (d < 5 && Math.abs(dy) < 10) {
                 this.seekTarget.eaten = true;
@@ -203,9 +207,14 @@ export class Fish {
                 const targetX = this.followTarget.x;
                 const targetY = this.followTarget.y;
                 this.wanderTarget = { x: targetX, y: targetY, z: this.z };
-                this.targetHeading = angleTo(this.x, this.z, targetX, this.z);
+                const hdx = targetX - this.x;
+                // Only update heading when there's meaningful horizontal distance
+                // to prevent flipping when target is directly above/below
+                if (Math.abs(hdx) > 2) {
+                    this.targetHeading = angleTo(this.x, this.z, targetX, this.z);
+                }
                 const dy = targetY - this.y;
-                this.targetPitch = clamp(dy * 0.05, -0.5, 0.5);
+                this.targetPitch = clamp(dy * 0.1, -1.0, 1.0);
             }
         }
 
