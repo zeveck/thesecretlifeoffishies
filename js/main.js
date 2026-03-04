@@ -328,7 +328,7 @@ function init() {
     }
 
     // Init UI
-    initUI(fishes, addFishToTank);
+    initUI(fishes, addFishToTank, getSaveState);
 
     // Init auto-save
     initAutoSave(getSaveState);

@@ -161,6 +161,23 @@ canvas#tank {
     width: 18px; height: 18px; accent-color: #4a9eff;
 }
 
+.tank-data { margin-top: 24px; }
+.data-buttons {
+    display: flex; gap: 8px; margin-bottom: 10px;
+}
+.data-buttons button {
+    flex: 1; padding: 8px; border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+}
+.data-buttons button:active { background: rgba(74, 158, 255, 0.25); }
+.danger-btn {
+    width: 100%; padding: 8px; border: 1px solid #ef5350;
+    background: rgba(239, 83, 80, 0.1); color: #ef5350;
+    border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+}
+.danger-btn:active { background: rgba(239, 83, 80, 0.25); }
+
 /* Store list */
 #store-capacity {
     font-size: 0.8rem; color: #6090b0; margin-bottom: 12px;

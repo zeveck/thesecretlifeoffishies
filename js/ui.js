@@ -7,14 +7,17 @@ import { getProgression, addXP, getXPProgress, getCurrentLevelInfo,
          getSwishProgress } from './store.js';
 import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
+import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
 
 let drawerOpen = false;
 let onAddFish = null; // callback
 let fishesRef = null;  // reference to fish array
+let getSaveStateRef = null; // callback to get current save state
 
-export function initUI(fishes, addFishCallback) {
+export function initUI(fishes, addFishCallback, getSaveState) {
     fishesRef = fishes;
     onAddFish = addFishCallback;
+    getSaveStateRef = getSaveState;
 
     // Menu button
     document.getElementById('menu-btn').addEventListener('click', toggleDrawer);
@@ -43,6 +46,48 @@ export function initUI(fishes, addFishCallback) {
     // Free feed toggle
     document.getElementById('toggle-free-feed').addEventListener('change', (e) => {
         getTank().freeFeed = e.target.checked;
+    });
+
+    // Export save
+    document.getElementById('btn-export-save').addEventListener('click', () => {
+        const json = exportSaveJSON(getSaveStateRef());
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fishies-save.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Import save
+    const fileInput = document.getElementById('import-file');
+    document.getElementById('btn-import-save').addEventListener('click', () => {
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const data = importSaveJSON(reader.result);
+            if (data) {
+                saveGame(data);
+                location.reload();
+            } else {
+                alert('Invalid save file.');
+            }
+        };
+        reader.readAsText(file);
+        fileInput.value = '';
+    });
+
+    // Reset game
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        if (confirm('Reset everything? All fish, coins, and progress will be lost.')) {
+            clearSave();
+            location.reload();
+        }
     });
 }
 

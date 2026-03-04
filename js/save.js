@@ -38,6 +38,31 @@ export function hasSave() {
     return localStorage.getItem(SAVE_KEY) !== null;
 }
 
+export function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+}
+
+export function exportSaveJSON(state) {
+    return JSON.stringify({
+        version: 1,
+        timestamp: Date.now(),
+        fish: state.fish,
+        tank: state.tank,
+        progression: state.progression,
+        settings: state.settings,
+    }, null, 2);
+}
+
+export function importSaveJSON(json) {
+    try {
+        const data = JSON.parse(json);
+        if (!data.fish || !data.progression) return null;
+        return data;
+    } catch (e) {
+        return null;
+    }
+}
+
 export function getOfflineSeconds() {
     const data = loadGame();
     if (!data || !data.timestamp) return 0;
