@@ -17,8 +17,8 @@ const progression = {
     xp: 0,
     level: 1,
     lastPassiveTick: Date.now(),
-    coins: 0,
-    pellets: 5,
+    coins: 10,
+    pellets: 20,
     lastDailyRefresh: Date.now(),
     swishProgress: 0,
 };
@@ -88,7 +88,12 @@ export function getPellets() {
     return progression.pellets;
 }
 
+export function isFreeFeed() {
+    return getTank().freeFeed;
+}
+
 export function usePellet() {
+    if (getTank().freeFeed) return true;
     if (progression.pellets > 0) {
         progression.pellets--;
         return true;
@@ -110,8 +115,8 @@ export function fishCost(species) {
 
 export function refreshDailyPellets() {
     const elapsed = Date.now() - progression.lastDailyRefresh;
-    if (elapsed >= 24 * 60 * 60 * 1000 && progression.pellets < 5) {
-        progression.pellets = 5;
+    if (elapsed >= 24 * 60 * 60 * 1000 && progression.pellets < 20) {
+        progression.pellets = 20;
         progression.lastDailyRefresh = Date.now();
     }
 }
@@ -139,8 +144,8 @@ export function canAddFish(fishes, species) {
     return species.level <= progression.level && (used + species.sizeInches * 0.6) <= cap;
 }
 
-export function updateSwishMeter(dt, totalHappiness) {
-    const rate = totalHappiness / 200; // progress per second
+export function updateSwishMeter(dt, totalHappiness, interacting) {
+    const rate = (totalHappiness / 200) * (interacting ? 3 : 1);
     progression.swishProgress += rate * dt;
     while (progression.swishProgress >= 100) {
         progression.swishProgress -= 100;
@@ -184,7 +189,7 @@ export function loadProgression(data) {
     progression.level = data.level ?? 1;
     progression.lastPassiveTick = data.lastPassiveTick ?? Date.now();
     progression.coins = data.coins ?? 0;
-    progression.pellets = data.pellets ?? 5;
+    progression.pellets = data.pellets ?? 20;
     progression.lastDailyRefresh = data.lastDailyRefresh ?? Date.now();
     progression.swishProgress = data.swishProgress ?? 0;
     checkLevelUp();

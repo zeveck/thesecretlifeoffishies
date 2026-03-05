@@ -225,6 +225,37 @@ canvas#tank {
 }
 .confirm-buttons button:active { background: rgba(74, 158, 255, 0.25); }
 
+#purchase-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+}
+#purchase-overlay.hidden { display: none; }
+#purchase-dialog {
+    background: #0f1d30; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 20px 24px;
+    max-width: 300px; text-align: center; color: #b0c8e0;
+}
+#purchase-fish {
+    display: block; margin: 0 auto 12px;
+}
+#purchase-species { font-size: 0.9rem; margin-bottom: 12px; }
+#purchase-name {
+    width: 100%; padding: 8px 10px; margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    background: rgba(255,255,255,0.06); color: #b0c8e0;
+    font-size: 0.85rem; outline: none;
+}
+#purchase-name:focus { border-color: #4a9eff; }
+
+.tips-section { margin-top: 16px; }
+.tips-list {
+    list-style: none; padding: 0; margin: 0;
+    font-size: 0.78rem; color: #608090; line-height: 1.6;
+}
+.tips-list li::before { content: "- "; color: #4a6a80; }
+
 /* Store list */
 #store-capacity {
     font-size: 0.8rem; color: #6090b0; margin-bottom: 12px;

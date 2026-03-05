@@ -4,7 +4,7 @@ import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
-import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView } from './orientation.js';
+import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
@@ -38,12 +38,14 @@ resize();
 // --- Pointer interactions ---
 let pointerDown = false;
 let pointerX = 0, pointerY = 0;
+let lastInteractionTime = 0;
 
 canvas.addEventListener('pointerdown', (e) => {
     if (isDrawerOpen()) return;
     pointerDown = true;
     pointerX = e.clientX;
     pointerY = e.clientY;
+    lastInteractionTime = Date.now();
     handleTap(e.clientX, e.clientY);
 });
 
@@ -86,6 +88,7 @@ function handleTap(px, py) {
             const size = fish.getSizePixels();
             if (dist(px, py, sx, sy) < size * 1.5) {
                 fish.boop();
+                lastInteractionTime = Date.now();
                 // XP cooldown: 5s per fish
                 const now = Date.now();
                 if (now - fish.lastBoopXP > 5000) {
@@ -151,7 +154,8 @@ function update(dt) {
 
     // Swish meter (coin generation)
     const totalHappiness = fishes.reduce((s, f) => s + f.happiness, 0);
-    updateSwishMeter(dt, totalHappiness);
+    const interacting = (Date.now() - lastInteractionTime) < 3000;
+    updateSwishMeter(dt, totalHappiness, interacting);
 
     // Auto-save
     if (shouldAutoSave()) {
@@ -233,7 +237,10 @@ function getSaveState() {
         fish: fishes.map(f => f.serialize()),
         tank: saveTankState(),
         progression: saveProgression(),
-        settings: { freeFeed: getTank().freeFeed },
+        settings: {
+            freeFeed: getTank().freeFeed,
+            showViewToggle: document.getElementById('toggle-show-view')?.checked ?? true,
+        },
     };
 }
 
@@ -277,6 +284,10 @@ function init() {
 
         if (saved.settings) {
             getTank().freeFeed = saved.settings.freeFeed ?? false;
+            const showToggle = saved.settings.showViewToggle ?? true;
+            setShowToggleOnMobile(showToggle);
+            const toggleEl = document.getElementById('toggle-show-view');
+            if (toggleEl) toggleEl.checked = showToggle;
         }
     }
 

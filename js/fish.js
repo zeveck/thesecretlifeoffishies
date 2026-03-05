@@ -2,7 +2,7 @@
 
 import { lerp, clamp, rand, dist, angleTo, lerpAngle, normalizeAngle, desaturate, adjustSaturation } from './utils.js';
 import { getFoods } from './food.js';
-import { getWaterQuality } from './tank.js';
+import { getWaterQuality, getDecorationHappinessBonus } from './tank.js';
 
 export const SPECIES_CATALOG = [
     { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 3.2, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
@@ -80,7 +80,7 @@ export class Fish {
         // Happiness composite
         const waterQ = getWaterQuality();
         const hungerScore = 100 - this.hunger;
-        this.happiness = clamp((hungerScore * 0.4 + this.strength * 0.3 + waterQ * 100 * 0.3), 0, 100);
+        this.happiness = clamp((hungerScore * 0.4 + this.strength * 0.3 + waterQ * 100 * 0.3) + getDecorationHappinessBonus(), 0, 100);
 
         // Sad timer
         if (this.happiness < 20) {

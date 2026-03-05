@@ -1,10 +1,11 @@
 // ui.js — HUD overlay, drawer panel, interaction handling
 
-import { getTank, doWaterChange } from './tank.js';
+import { getTank, doWaterChange, DECORATIONS, CARE_ITEMS, hasDecoration, addDecoration, useCareItem, getDecorationHappinessBonus } from './tank.js';
 import { getProgression, addXP, getXPProgress, getCurrentLevelInfo,
          getAllSpecies, canAddFish, getCurrentStockInches, getTankCapacity,
          getCoins, getPellets, spendCoins, fishCost, buyFoodPack, addCoins,
-         getSwishProgress } from './store.js';
+         getSwishProgress, isFreeFeed } from './store.js';
+import { setShowToggleOnMobile, getShowToggleOnMobile } from './orientation.js';
 import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
 import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
@@ -46,6 +47,12 @@ export function initUI(fishes, addFishCallback, getSaveState) {
     // Free feed toggle
     document.getElementById('toggle-free-feed').addEventListener('change', (e) => {
         getTank().freeFeed = e.target.checked;
+        updateHUD();
+    });
+
+    // Show view toggle on mobile
+    document.getElementById('toggle-show-view').addEventListener('change', (e) => {
+        setShowToggleOnMobile(e.target.checked);
     });
 
     // Export save
@@ -132,6 +139,7 @@ function refreshTankStats() {
     setText('.algae-val', Math.round(tank.algae));
 
     document.getElementById('toggle-free-feed').checked = tank.freeFeed;
+    document.getElementById('toggle-show-view').checked = getShowToggleOnMobile();
 }
 
 function refreshStore() {
@@ -162,6 +170,54 @@ function refreshStore() {
         });
     }
     list.appendChild(foodBtn);
+
+    // Tank care items (consumable)
+    for (const item of CARE_ITEMS) {
+        const canAffordItem = coins >= item.cost;
+        const el = document.createElement('div');
+        el.className = 'store-item' + (canAffordItem ? '' : ' locked');
+        el.innerHTML = `
+            <div class="preview" style="background:${item.color};display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff">+</div>
+            <div class="info">
+                <div class="name">${item.name}</div>
+                <div class="detail">${item.desc} &mdash; ${item.cost} coins${!canAffordItem ? ' (need ' + (item.cost - coins) + ' more)' : ''}</div>
+            </div>
+        `;
+        if (canAffordItem) {
+            el.addEventListener('click', () => {
+                if (spendCoins(item.cost)) {
+                    useCareItem(item.id);
+                    refreshStore();
+                    refreshTankStats();
+                }
+            });
+        }
+        list.appendChild(el);
+    }
+
+    // Decorations
+    for (const deco of DECORATIONS) {
+        const owned = hasDecoration(deco.id);
+        const canAffordDeco = coins >= deco.cost;
+        const el = document.createElement('div');
+        el.className = 'store-item' + (owned || !canAffordDeco ? ' locked' : '');
+        el.innerHTML = `
+            <div class="preview" style="background:${deco.color};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff">${owned ? '\u2713' : ''}</div>
+            <div class="info">
+                <div class="name">${deco.name}${owned ? ' (owned)' : ''}</div>
+                <div class="detail">${deco.desc} &mdash; ${deco.cost} coins${!owned && !canAffordDeco ? ' (need ' + (deco.cost - coins) + ' more)' : ''}</div>
+            </div>
+        `;
+        if (!owned && canAffordDeco) {
+            el.addEventListener('click', () => {
+                if (spendCoins(deco.cost)) {
+                    addDecoration(deco.id);
+                    refreshStore();
+                }
+            });
+        }
+        list.appendChild(el);
+    }
 
     for (const species of SPECIES_CATALOG) {
         const prog = getProgression();
@@ -195,12 +251,10 @@ function refreshStore() {
 
         if (available && canAdd && canAfford) {
             item.addEventListener('click', () => {
-                const name = prompt(`Name your ${species.name} (or leave blank):`);
-                if (name === null) return; // cancelled
-                if (!spendCoins(cost)) return; // double-check
-                if (onAddFish) onAddFish(species, name.trim());
-                refreshStore();
-                refreshMyFish();
+                showPurchaseDialog(species, cost, (sp, name) => {
+                    if (onAddFish) onAddFish(sp, name);
+                    closeDrawer();
+                });
             });
         }
 
@@ -265,7 +319,7 @@ export function updateHUD() {
 
     // Coin, pellet, and happiness counters
     document.getElementById('coin-count').textContent = '\u25CF ' + getCoins();
-    document.getElementById('pellet-count').textContent = '\u2022 ' + getPellets();
+    document.getElementById('pellet-count').textContent = '\u2022 ' + (isFreeFeed() ? '\u221E' : getPellets());
 
     // Average happiness
     const avgHappy = fishesRef && fishesRef.length > 0
@@ -452,6 +506,54 @@ export function decodeTankState(encoded) {
     } catch (e) {
         return null;
     }
+}
+
+function showPurchaseDialog(species, cost, onConfirm) {
+    const overlay = document.getElementById('purchase-overlay');
+    overlay.classList.remove('hidden');
+
+    // Draw the fish on the purchase canvas
+    const canvas = document.getElementById('purchase-fish');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const fish = new Fish(species);
+    fish.x = 50; fish.y = 50;
+    fish.happiness = 80;
+    fish.heading = 0; fish.tailPhase = 0; fish.pitch = 0;
+    const rawPx = fish.currentSize * 20;
+    const targetPx = Math.min(w * 0.35, h * 0.7);
+    const scale = targetPx / rawPx;
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-w / 2, -h / 2);
+    fish.drawSide(ctx, 0, 0, w, h);
+    ctx.restore();
+
+    document.getElementById('purchase-species').textContent = `${species.name} — ${cost} coins`;
+    const nameInput = document.getElementById('purchase-name');
+    nameInput.value = '';
+    setTimeout(() => nameInput.focus(), 50);
+
+    const ok = document.getElementById('purchase-ok');
+    const cancel = document.getElementById('purchase-cancel');
+
+    function cleanup() {
+        overlay.classList.add('hidden');
+        ok.removeEventListener('click', handleOk);
+        cancel.removeEventListener('click', handleCancel);
+    }
+    function handleOk() {
+        const name = nameInput.value.trim();
+        if (!spendCoins(cost)) return;
+        cleanup();
+        onConfirm(species, name);
+    }
+    function handleCancel() { cleanup(); }
+
+    ok.addEventListener('click', handleOk);
+    cancel.addEventListener('click', handleCancel);
 }
 
 function drawConfirmFish() {

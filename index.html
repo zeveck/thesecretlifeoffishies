@@ -128,6 +128,21 @@
                         <span>Free Feed Mode</span>
                         <input type="checkbox" id="toggle-free-feed">
                     </label>
+                    <label class="toggle-row">
+                        <span>Show View Toggle</span>
+                        <input type="checkbox" id="toggle-show-view" checked>
+                    </label>
+                </div>
+                <div class="tips-section">
+                    <h3>Tips</h3>
+                    <ul class="tips-list">
+                        <li>Tap the water in top-down view to drop food</li>
+                        <li>Tap a fish in side view to boop it</li>
+                        <li>Hold your finger near fish to attract them</li>
+                        <li>Happy fish generate coins over time</li>
+                        <li>Interact with fish to boost coin generation 3x</li>
+                        <li>Change water regularly to keep chemistry healthy</li>
+                    </ul>
                 </div>
             </div>
             <div id="tab-store" class="tab-panel">
@@ -159,6 +174,19 @@
             <div class="confirm-buttons">
                 <button id="confirm-cancel">Cancel</button>
                 <button id="confirm-ok" class="danger-btn">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase dialog -->
+    <div id="purchase-overlay" class="hidden">
+        <div id="purchase-dialog">
+            <canvas id="purchase-fish" width="200" height="80"></canvas>
+            <p id="purchase-species"></p>
+            <input type="text" id="purchase-name" placeholder="Name your fish (optional)">
+            <div class="confirm-buttons">
+                <button id="purchase-cancel">Cancel</button>
+                <button id="purchase-ok">Buy</button>
             </div>
         </div>
     </div>

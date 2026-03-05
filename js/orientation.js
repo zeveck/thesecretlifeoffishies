@@ -8,6 +8,7 @@ let isDesktop = true; // assume desktop until proven otherwise
 let orientationEventCount = 0;
 let permissionGranted = false;
 let suppressUntil = 0; // timestamp — ignore orientation events until this time
+let showToggleOnMobile = true;
 
 const SMOOTH_FACTOR = 0.08;
 const MIN_EVENTS_FOR_MOBILE = 3; // need several events to confirm real sensor
@@ -42,7 +43,7 @@ function handleOrientation(e) {
     if (isDesktop) {
         isDesktop = false;
         const btn = document.getElementById('view-toggle-btn');
-        if (btn) btn.classList.add('hidden');
+        if (btn) btn.classList.toggle('hidden', !showToggleOnMobile);
     }
 
     // beta: 0 = flat (top-down), 90 = upright (side view)
@@ -73,12 +74,28 @@ export function toggleView() {
     targetViewAngle = targetViewAngle > 0.5 ? 0 : 1;
 }
 
+export function setShowToggleOnMobile(show) {
+    showToggleOnMobile = show;
+    if (!isDesktop) {
+        const btn = document.getElementById('view-toggle-btn');
+        if (btn) btn.classList.toggle('hidden', !show);
+    }
+}
+
+export function getShowToggleOnMobile() {
+    return showToggleOnMobile;
+}
+
 export function initDesktopControls() {
-    // Show toggle button after short delay — hide if mobile detected
+    // Show toggle button after short delay
     setTimeout(() => {
-        if (isDesktop) {
-            const btn = document.getElementById('view-toggle-btn');
-            if (btn) btn.classList.remove('hidden');
+        const btn = document.getElementById('view-toggle-btn');
+        if (btn) {
+            if (isDesktop) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.toggle('hidden', !showToggleOnMobile);
+            }
         }
     }, 500);
 

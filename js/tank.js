@@ -12,7 +12,48 @@ const tank = {
     // Tank dimensions in "inches" for stocking
     gallons: 10,
     capacityInches: 5,
+    decorations: [],  // Array of decoration IDs owned
 };
+
+// Decoration catalog
+export const DECORATIONS = [
+    { id: 'java_fern', name: 'Java Fern', cost: 15, color: '#4a8a3a', desc: 'Reduces algae growth', effect: 'algae' },
+    { id: 'castle', name: 'Castle Ruin', cost: 20, color: '#8a7a5a', desc: 'Fish feel safer (+happiness)', effect: 'happiness' },
+    { id: 'coral', name: 'Coral Reef', cost: 25, color: '#e07060', desc: 'Absorbs nitrate', effect: 'nitrate' },
+    { id: 'driftwood', name: 'Driftwood', cost: 12, color: '#7a5a3a', desc: 'Boosts bacteria growth', effect: 'bacteria' },
+];
+
+// Tank care items (consumable)
+export const CARE_ITEMS = [
+    { id: 'conditioner', name: 'Water Conditioner', cost: 8, color: '#5ab8d6', desc: 'Halves ammonia & nitrite' },
+    { id: 'bacteria_dose', name: 'Bacteria Supplement', cost: 10, color: '#5a9ed6', desc: 'Boosts bacteria colony +20' },
+];
+
+export function hasDecoration(id) {
+    return tank.decorations.includes(id);
+}
+
+export function addDecoration(id) {
+    if (!tank.decorations.includes(id)) {
+        tank.decorations.push(id);
+    }
+}
+
+export function useCareItem(id) {
+    if (id === 'conditioner') {
+        tank.ammonia *= 0.5;
+        tank.nitrite *= 0.5;
+    } else if (id === 'bacteria_dose') {
+        tank.bacteria = clamp(tank.bacteria + 20, 0, 100);
+    }
+}
+
+export function getDecorationHappinessBonus() {
+    let bonus = 0;
+    if (tank.decorations.includes('castle')) bonus += 5;
+    if (tank.decorations.includes('coral')) bonus += 3;
+    return bonus;
+}
 
 // Accumulator for per-second chemistry ticks
 let chemAccum = 0;
@@ -53,12 +94,19 @@ function tickChemistry(fishInches, uneatenFood) {
     tank.nitrite -= nitriteConverted;
     tank.nitrate += nitriteConverted * 0.67;
 
-    // Algae from nitrate
-    tank.algae += tank.nitrate * 0.001;
+    // Algae from nitrate (Java Fern reduces by 50%)
+    const algaeRate = tank.decorations.includes('java_fern') ? 0.0005 : 0.001;
+    tank.algae += tank.nitrate * algaeRate;
 
-    // Bacteria growth — slow, faster when ammonia present
+    // Coral absorbs nitrate
+    if (tank.decorations.includes('coral')) {
+        tank.nitrate *= 0.998;
+    }
+
+    // Bacteria growth — slow, faster when ammonia present (Driftwood boosts)
     const ammoniaBonus = tank.ammonia > 1 ? 0.02 : 0;
-    tank.bacteria += 0.01 + ammoniaBonus;
+    const driftwoodBonus = tank.decorations.includes('driftwood') ? 0.01 : 0;
+    tank.bacteria += 0.01 + ammoniaBonus + driftwoodBonus;
 
     // Clamp everything
     tank.ammonia = clamp(tank.ammonia, 0, 100);
@@ -100,6 +148,7 @@ export function loadTankState(state) {
     tank.freeFeed = state.freeFeed ?? false;
     tank.gallons = state.gallons ?? 10;
     tank.capacityInches = state.capacityInches ?? 5;
+    tank.decorations = state.decorations ?? [];
 }
 
 export function saveTankState() {
