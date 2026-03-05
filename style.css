@@ -287,6 +287,23 @@ canvas#tank {
 }
 .tips-list li::before { content: "- "; color: #4a6a80; }
 
+/* In-tab fish tip */
+#tank-tip {
+    margin: 14px 0; padding: 10px 14px;
+    background: rgba(74, 158, 255, 0.06);
+    border-left: 3px solid rgba(74, 158, 255, 0.3);
+    border-radius: 0 8px 8px 0;
+}
+#tank-tip-text {
+    font-size: 0.95rem; color: #b0c8e0;
+    line-height: 1.5; display: block;
+}
+#tank-tip-source {
+    color: rgba(74, 158, 255, 0.5); text-decoration: none;
+    font-size: 0.7rem; margin-top: 4px; display: inline-block;
+}
+#tank-tip-source:hover { color: #4a9eff; text-decoration: underline; }
+
 /* Store pills */
 #store-pills {
     display: flex; gap: 6px; margin-bottom: 10px;

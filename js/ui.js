@@ -11,23 +11,23 @@ import { clamp } from './utils.js';
 import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
 
 const FISH_TIPS = [
-    { tip: "The \"goldfish have a 3-second memory\" thing is a total myth. Studies show goldfish can remember things for months!", source: "https://www.livescience.com/goldfish-memory.html" },
-    { tip: "Bigger tanks are actually easier to care for. More water means more stable chemistry, so a 20-gallon is way more forgiving than a 5-gallon.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
-    { tip: "Fish don't have eyelids, so they sleep with their eyes open. Putting your tank light on a timer helps them keep a healthy sleep schedule.", source: "https://oceanservice.noaa.gov/facts/fish-sleep.html" },
-    { tip: "Overfeeding is the #1 beginner mistake. Fish only need what they can eat in about 2 minutes -- uneaten food turns into toxic ammonia.", source: "https://www.aqueon.com/articles/dangers-of-uneaten-fish-food" },
-    { tip: "Betta fish can actually recognize their owners! They learn your face and will swim to the front when you walk up.", source: "https://www.lovetoknowpets.com/aquariums/do-betta-fish-recognize-interact-their-owners" },
-    { tip: "Never replace all your filter media at once -- that's where your beneficial bacteria live. Swap half at a time to keep the cycle going.", source: "https://www.swelluk.com/help-guides/how-to-change-the-aquarium-filter-without-losing-bacteria/" },
-    { tip: "Corydoras catfish are the sweetest schooling fish. Keep them in groups of 6+ and you'll see them do a synchronized swimming dance.", source: "https://www.aquariumcoop.com/blogs/aquarium/cory-catfish-care-guide" },
-    { tip: "Archerfish can recognize individual human faces from a lineup of 44 others with 81% accuracy. Not bad for a fish!", source: "https://www.ox.ac.uk/news/2016-06-07-fish-can-recognise-human-faces-new-research-shows" },
-    { tip: "Live plants aren't just decoration -- they filter your water by absorbing ammonia and nitrates. Java Fern and Anubias are nearly impossible to kill.", source: "https://www.aquariumcoop.com/blogs/aquarium/easy-aquarium-plants" },
-    { tip: "Tap water contains chlorine that can kill fish in minutes. Always treat new water with dechlorinator before adding it -- no exceptions!", source: "https://www.apifishcare.com/simple-care-guide/freshwater/start-up" },
-    { tip: "\"Cycling\" your tank means growing colonies of good bacteria that eat toxic ammonia. It takes 2-8 weeks and is the most important thing before adding fish.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
-    { tip: "Some fish species actually sing together in a chorus at dawn and dusk. Researchers have recorded entire underwater fish choirs!", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
-    { tip: "An elephantnose fish was observed pushing a ball into a filter current, chasing it down, and repeating the game -- basically playing fetch with itself.", source: "https://en.wikipedia.org/wiki/Fish_intelligence" },
-    { tip: "Neon tetras school together to look like one big fish. A group of 10+ shimmering in sync is one of the most mesmerizing sights in the hobby.", source: "https://www.fishiology.com/underwater-dance-unraveling-the-enigmatic-schooling-behavior-of-neon-tetras/" },
-    { tip: "Fish can remember other fish they've lost fights to and will actively avoid those individuals. They hold grudges!", source: "https://spca.bc.ca/news/fun-facts-about-fish/" },
-    { tip: "Weekly 25-30% water changes are the easiest way to keep fish healthy. Think of it like opening a window for fresh air -- your fish will thank you with brighter colors.", source: "https://modestfish.com/how-to-cycle-your-aquarium/" },
-    { tip: "Groupers and moray eels team up to hunt together on coral reefs. The grouper actually gestures to the eel to join -- it's basically fish sign language.", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
+    { tip: "Goldfish can remember things for months -- the 3-second memory myth is totally false.", source: "https://www.livescience.com/goldfish-memory.html" },
+    { tip: "Bigger tanks are easier to keep. More water = more stable chemistry.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
+    { tip: "Fish sleep with their eyes open -- they don't have eyelids!", source: "https://oceanservice.noaa.gov/facts/fish-sleep.html" },
+    { tip: "Only feed what fish eat in 2 minutes. Uneaten food turns into toxic ammonia.", source: "https://www.aqueon.com/articles/dangers-of-uneaten-fish-food" },
+    { tip: "Bettas recognize their owners and swim to the glass when you walk up.", source: "https://www.lovetoknowpets.com/aquariums/do-betta-fish-recognize-interact-their-owners" },
+    { tip: "Never replace all filter media at once -- that's where your good bacteria live.", source: "https://www.swelluk.com/help-guides/how-to-change-the-aquarium-filter-without-losing-bacteria/" },
+    { tip: "Keep corydoras in groups of 6+ and they'll do a synchronized swimming dance.", source: "https://www.aquariumcoop.com/blogs/aquarium/cory-catfish-care-guide" },
+    { tip: "Archerfish recognize human faces with 81% accuracy from a lineup of 44.", source: "https://www.ox.ac.uk/news/2016-06-07-fish-can-recognise-human-faces-new-research-shows" },
+    { tip: "Java Fern and Anubias filter your water and are nearly impossible to kill.", source: "https://www.aquariumcoop.com/blogs/aquarium/easy-aquarium-plants" },
+    { tip: "Tap water chlorine kills fish in minutes. Always use dechlorinator!", source: "https://www.apifishcare.com/simple-care-guide/freshwater/start-up" },
+    { tip: "\"Cycling\" grows bacteria that eat ammonia. It takes 2-8 weeks before adding fish.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
+    { tip: "Some fish sing together in a chorus at dawn and dusk -- underwater choirs!", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
+    { tip: "Elephantnose fish play fetch -- pushing a ball into a current and chasing it.", source: "https://en.wikipedia.org/wiki/Fish_intelligence" },
+    { tip: "Neon tetras school in sync to look like one big fish. Mesmerizing in groups of 10+.", source: "https://www.fishiology.com/underwater-dance-unraveling-the-enigmatic-schooling-behavior-of-neon-tetras/" },
+    { tip: "Fish hold grudges -- they remember rivals they've lost fights to.", source: "https://spca.bc.ca/news/fun-facts-about-fish/" },
+    { tip: "Weekly 25% water changes keep fish healthy. Like opening a window for fresh air.", source: "https://modestfish.com/how-to-cycle-your-aquarium/" },
+    { tip: "Groupers gesture to moray eels to hunt together -- basically fish sign language.", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
 ];
 let tipIndex = Math.floor(Math.random() * FISH_TIPS.length);
 let tipTimer = 0;
@@ -689,42 +689,20 @@ function showPurchaseDialog(species, cost, onConfirm) {
 
 export function updateFloatingTip(dt) {
     tipTimer += dt;
-    const tipEl = document.getElementById('floating-tip');
-    if (!tipEl) return;
-    // Show a new tip every 45 seconds, with 3s fade transition
-    if (tipTimer > 45) {
+    // Rotate tip every 45 seconds
+    if (tipTimer > 45 || !tipShownFirst) {
         tipTimer = 0;
-        tipIndex = (tipIndex + 1) % FISH_TIPS.length;
-        tipEl.classList.add('hidden');
-        setTimeout(() => {
-            const t = FISH_TIPS[tipIndex];
-            document.getElementById('tip-text').textContent = t.tip;
-            const sourceEl = document.getElementById('tip-source');
-            if (t.source) {
-                sourceEl.href = t.source;
-                sourceEl.style.display = '';
-            } else {
-                sourceEl.style.display = 'none';
-            }
-            tipEl.classList.remove('hidden');
-        }, 1000);
-    }
-    // On first load, show immediately
-    if (!tipShownFirst) {
+        if (tipShownFirst) tipIndex = (tipIndex + 1) % FISH_TIPS.length;
         tipShownFirst = true;
         const t = FISH_TIPS[tipIndex];
-        document.getElementById('tip-text').textContent = t.tip;
-        const sourceEl = document.getElementById('tip-source');
-        if (t.source) {
-            sourceEl.href = t.source;
-            sourceEl.style.display = '';
-        } else {
-            sourceEl.style.display = 'none';
+        const textEl = document.getElementById('tank-tip-text');
+        const sourceEl = document.getElementById('tank-tip-source');
+        if (textEl) textEl.textContent = t.tip;
+        if (sourceEl) {
+            sourceEl.href = t.source || '';
+            sourceEl.style.display = t.source ? '' : 'none';
         }
-        tipEl.classList.remove('hidden');
     }
-    // Hide when drawer is open
-    if (drawerOpen) tipEl.classList.add('hidden');
 }
 
 function drawConfirmFish() {
