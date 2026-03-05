@@ -29,7 +29,7 @@ export const DECORATIONS = [
 // Tank care items (consumable)
 export const CARE_ITEMS = [
     { id: 'conditioner', name: 'Water Conditioner', cost: 8, color: '#5ab8d6', desc: 'Halves ammonia & nitrite' },
-    { id: 'bacteria_dose', name: 'Bacteria Supplement', cost: 10, color: '#5a9ed6', desc: 'Boosts bacteria colony +20' },
+    { id: 'algae_scrub', name: 'Algae Scrub', cost: 8, color: '#7ab85a', desc: 'Removes half your algae instantly' },
 ];
 
 export function hasDecoration(id) {
@@ -46,8 +46,8 @@ export function useCareItem(id) {
     if (id === 'conditioner') {
         tank.ammonia *= 0.5;
         tank.nitrite *= 0.5;
-    } else if (id === 'bacteria_dose') {
-        tank.bacteria = clamp(tank.bacteria + 20, 0, 100);
+    } else if (id === 'algae_scrub') {
+        tank.algae *= 0.5;
     }
 }
 
@@ -83,7 +83,7 @@ export function updateChemistry(dt, totalFishInches, uneatenFoodCount) {
 
 function tickChemistry(fishInches, uneatenFood) {
     // Ammonia production from fish + uneaten food
-    tank.ammonia += fishInches * 0.003 + uneatenFood * 0.01;
+    tank.ammonia += fishInches * 0.0015 + uneatenFood * 0.005;
     if (tank.freeFeed) {
         // In free feed mode, food doesn't contribute
         tank.ammonia -= uneatenFood * 0.01;
@@ -100,7 +100,7 @@ function tickChemistry(fishInches, uneatenFood) {
     tank.nitrate += nitriteConverted * 0.67;
 
     // Algae from nitrate (Java Fern reduces by 50%)
-    const algaeRate = tank.decorations.includes('java_fern') ? 0.0005 : 0.001;
+    const algaeRate = tank.decorations.includes('java_fern') ? 0.00025 : 0.0005;
     tank.algae += tank.nitrate * algaeRate;
 
     // Coral absorbs nitrate
@@ -109,10 +109,10 @@ function tickChemistry(fishInches, uneatenFood) {
     }
 
     // Bacteria growth — slow, faster when ammonia present (Driftwood boosts)
-    const ammoniaBonus = tank.ammonia > 1 ? 0.02 : 0;
-    const driftwoodBonus = tank.decorations.includes('driftwood') ? 0.01 : 0;
-    const archBonus = tank.decorations.includes('rock_arch') ? 0.008 : 0;
-    tank.bacteria += 0.01 + ammoniaBonus + driftwoodBonus + archBonus;
+    const ammoniaBonus = tank.ammonia > 1 ? 0.002 : 0;
+    const driftwoodBonus = tank.decorations.includes('driftwood') ? 0.001 : 0;
+    const archBonus = tank.decorations.includes('rock_arch') ? 0.0008 : 0;
+    tank.bacteria += 0.001 + ammoniaBonus + driftwoodBonus + archBonus;
 
     // Clamp everything
     tank.ammonia = clamp(tank.ammonia, 0, 100);
@@ -123,11 +123,11 @@ function tickChemistry(fishInches, uneatenFood) {
 }
 
 export function doWaterChange() {
-    tank.ammonia *= 0.75;
-    tank.nitrite *= 0.75;
-    tank.nitrate *= 0.75;
-    tank.bacteria *= 0.95; // Slight bacteria loss
-    tank.algae *= 0.8;
+    tank.ammonia *= 0.4;
+    tank.nitrite *= 0.5;
+    tank.nitrate *= 0.5;
+    tank.bacteria *= 0.85; // Noticeable bacteria loss
+    tank.algae *= 0.5;
 }
 
 export function getWaterQuality() {

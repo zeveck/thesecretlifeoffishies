@@ -37,36 +37,15 @@ canvas#tank {
 }
 #start-btn:active { background: rgba(74, 158, 255, 0.35); }
 
-/* Floating tip */
-#floating-tip {
-    position: fixed; top: 60px; left: 50%;
-    transform: translateX(-50%);
-    max-width: min(400px, 85vw); padding: 10px 14px;
-    background: rgba(10, 22, 40, 0.85);
-    border: 1px solid rgba(74, 158, 255, 0.15);
-    border-radius: 10px; z-index: 8;
-    font-size: 0.72rem; color: rgba(176, 200, 224, 0.7);
-    line-height: 1.5; text-align: center;
-    pointer-events: auto;
-    animation: tipFadeIn 1s ease;
-    transition: opacity 1s;
-}
-#floating-tip.hidden { opacity: 0; pointer-events: none; }
-#tip-source {
-    color: rgba(74, 158, 255, 0.5); text-decoration: none;
-    font-size: 0.65rem; margin-left: 6px;
-}
-#tip-source:hover { color: #4a9eff; text-decoration: underline; }
-@keyframes tipFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
 /* HUD */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: auto; }
 #hud-top-left { position: absolute; top: 18px; left: 18px; }
 #view-toggle-btn {
-    background: rgba(0,0,0,0.3); border: none; color: #cde;
-    font-size: 0.9rem; width: 32px; height: 32px;
-    border-radius: 6px; cursor: pointer; line-height: 1;
+    background: rgba(0,0,0,0.3); border: none;
+    display: block; width: 32px; height: 32px;
+    border-radius: 6px; cursor: pointer;
 }
 #view-toggle-btn:active { background: rgba(0,0,0,0.5); }
 #view-toggle-btn.hidden { display: none; }
@@ -198,19 +177,36 @@ canvas#tank {
 
 .tank-actions { margin-top: 16px; }
 #btn-water-change {
+    --fill: 0%;
     width: 100%; padding: 10px; border: 1px solid #4a9eff;
-    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    background: linear-gradient(to top,
+        rgba(74, 158, 255, 0.32) calc(var(--fill) - 2px),
+        rgba(74, 158, 255, 0.18) var(--fill),
+        rgba(74, 158, 255, 0.1) calc(var(--fill) + 2px));
+    color: #4a9eff;
     border-radius: 8px; font-size: 0.9rem; cursor: pointer;
     margin-bottom: 12px;
+    transition: background-position 0.5s ease;
 }
-#btn-water-change:active { background: rgba(74, 158, 255, 0.25); }
+#btn-water-change.filling {
+    animation: waterShimmer 3s ease-in-out infinite;
+}
+@keyframes waterShimmer {
+    0%, 100% { background-position: 0 0; }
+    50% { background-position: 0 2px; }
+}
+#btn-water-change:active { background-color: rgba(74, 158, 255, 0.25); }
 #btn-water-change.cooldown {
-    opacity: 0.5; border-color: #506878; color: #506878;
+    color: rgba(74, 158, 255, 0.7);
     cursor: default;
 }
 #water-change-cooldown {
-    font-size: 0.7rem; color: #506878; margin-top: 4px;
-    min-height: 1em;
+    font-size: 0.72rem; color: #7090a8; margin-top: -4px; margin-bottom: 6px;
+    text-align: center; min-height: 1em;
+    opacity: 0; transition: opacity 0.3s;
+}
+#water-change-cooldown.show {
+    opacity: 1;
 }
 
 .toggle-row {
@@ -312,7 +308,7 @@ canvas#tank {
     border-radius: 0 8px 8px 0;
 }
 #tank-tip-text {
-    font-size: 0.95rem; color: #b0c8e0;
+    font-size: 0.85rem; color: #b0c8e0;
     line-height: 1.5; display: block;
 }
 #tank-tip-source {
@@ -348,25 +344,21 @@ canvas#tank {
     font-size: 0.8rem; color: #6090b0; margin-bottom: 12px;
     padding: 6px 10px; background: rgba(255,255,255,0.04); border-radius: 6px;
 }
-.store-item, .fish-item {
+.store-item {
     display: flex; align-items: center; gap: 10px;
     padding: 10px; margin-bottom: 8px;
     background: rgba(255,255,255,0.04); border-radius: 8px;
     cursor: pointer; transition: background 0.15s;
 }
-.store-item:active, .fish-item:active { background: rgba(255,255,255,0.08); }
+.store-item:active { background: rgba(255,255,255,0.08); }
 .store-item.locked { opacity: 0.4; cursor: default; }
 .store-item .preview {
     width: 36px; height: 36px; border-radius: 50%;
     flex-shrink: 0;
 }
-.store-item .info, .fish-item .info { flex: 1; }
-.store-item .name, .fish-item .name { font-size: 0.85rem; color: #c0d8e8; }
-.store-item .detail, .fish-item .detail { font-size: 0.72rem; color: #607888; margin-top: 2px; }
-.fish-item .happiness-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    flex-shrink: 0;
-}
+.store-item .info { flex: 1; }
+.store-item .name { font-size: 0.85rem; color: #c0d8e8; }
+.store-item .detail { font-size: 0.72rem; color: #607888; margin-top: 2px; }
 
 /* Fish cards */
 .fish-card {
@@ -392,13 +384,3 @@ canvas#tank {
 .fish-stat-bar .stat-label { width: 40px; text-align: right; font-size: 0.6rem; }
 .fish-card-detail { font-size: 0.65rem; color: #506878; margin-top: 4px; }
 
-/* Fish stats popup */
-
-/* View hint */
-.view-hint {
-    position: fixed; bottom: 40px; left: 50%;
-    transform: translateX(-50%);
-    color: rgba(255,255,255,0.3); font-size: 0.75rem;
-    pointer-events: none; z-index: 5;
-    transition: opacity 0.5s;
-}

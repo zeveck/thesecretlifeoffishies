@@ -80,13 +80,11 @@
         </div>
     </div>
 
-    <!-- Floating tip (legacy, hidden) -->
-    <div id="floating-tip" class="hidden" style="display:none"></div>
-
     <!-- HUD -->
     <div id="hud">
         <div id="hud-top-left">
-            <button id="view-toggle-btn" class="hidden" aria-label="Toggle View">&#x21C5;</button>
+            <canvas id="view-toggle-btn" class="hidden" width="64" height="64"
+                    role="button" tabindex="0" aria-label="Toggle View"></canvas>
         </div>
         <div id="hud-top-right">
             <button id="menu-btn" aria-label="Menu">&#9776;</button>
@@ -143,6 +141,7 @@
                         <li>Tap the water in top-down view to drop food</li>
                         <li>Tap a fish in side view to boop it</li>
                         <li>Hold your finger near fish to attract them</li>
+                        <li>Long-press on a fish to see names and happiness</li>
                         <li>Happy fish generate coins over time</li>
                         <li>Interact with fish to boost coin generation 3x</li>
                         <li>Change water regularly to keep chemistry healthy</li>

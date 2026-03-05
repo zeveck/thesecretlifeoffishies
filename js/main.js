@@ -4,8 +4,8 @@ import { Fish, SPECIES_CATALOG } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
-import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile } from './orientation.js';
-import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
+import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
+import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
@@ -353,6 +353,8 @@ function getSaveState() {
         settings: {
             freeFeed: getTank().freeFeed,
             showViewToggle: document.getElementById('toggle-show-view')?.checked ?? true,
+            mobileViewMode: getMobileViewMode(),
+            viewAngle: Math.round(getViewAngle()),
         },
     };
 }
@@ -401,6 +403,12 @@ function init() {
             setShowToggleOnMobile(showToggle);
             const toggleEl = document.getElementById('toggle-show-view');
             if (toggleEl) toggleEl.checked = showToggle;
+            if (saved.settings.viewAngle !== undefined) {
+                setViewAngle(saved.settings.viewAngle);
+            }
+            if (saved.settings.mobileViewMode) {
+                setMobileViewMode(saved.settings.mobileViewMode);
+            }
         }
     }
 
@@ -429,6 +437,12 @@ function init() {
     // Desktop controls
     initDesktopControls();
     document.getElementById('view-toggle-btn').addEventListener('click', toggleView);
+    document.getElementById('view-toggle-btn').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleView();
+        }
+    });
 
     // Start game loop
     lastTime = performance.now();

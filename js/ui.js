@@ -15,7 +15,7 @@ const FISH_TIPS = [
     { tip: "Bigger tanks are easier to keep. More water = more stable chemistry.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
     { tip: "Fish sleep with their eyes open -- they don't have eyelids!", source: "https://oceanservice.noaa.gov/facts/fish-sleep.html" },
     { tip: "Only feed what fish eat in 2 minutes. Uneaten food turns into toxic ammonia.", source: "https://www.aqueon.com/articles/dangers-of-uneaten-fish-food" },
-    { tip: "Bettas recognize their owners and swim to the glass when you walk up.", source: "https://www.lovetoknowpets.com/aquariums/do-betta-fish-recognize-interact-their-owners" },
+    { tip: "Bettas recognize their owners and swim to the glass when you walk up.", source: "https://thefishingaquarium.com/do-betta-fish-recognize-their-owners/" },
     { tip: "Never replace all filter media at once -- that's where your good bacteria live.", source: "https://www.swelluk.com/help-guides/how-to-change-the-aquarium-filter-without-losing-bacteria/" },
     { tip: "Keep corydoras in groups of 6+ and they'll do a synchronized swimming dance.", source: "https://www.aquariumcoop.com/blogs/aquarium/cory-catfish-care-guide" },
     { tip: "Archerfish recognize human faces with 81% accuracy from a lineup of 44.", source: "https://www.ox.ac.uk/news/2016-06-07-fish-can-recognise-human-faces-new-research-shows" },
@@ -24,7 +24,7 @@ const FISH_TIPS = [
     { tip: "\"Cycling\" grows bacteria that eat ammonia. It takes 2-8 weeks before adding fish.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
     { tip: "Some fish sing together in a chorus at dawn and dusk -- underwater choirs!", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
     { tip: "Elephantnose fish play fetch -- pushing a ball into a current and chasing it.", source: "https://en.wikipedia.org/wiki/Fish_intelligence" },
-    { tip: "Neon tetras school in sync to look like one big fish. Mesmerizing in groups of 10+.", source: "https://www.fishiology.com/underwater-dance-unraveling-the-enigmatic-schooling-behavior-of-neon-tetras/" },
+    { tip: "Neon tetras school in sync to look like one big fish. Mesmerizing in groups of 10+.", source: "https://www.aquariumcoop.com/blogs/aquarium/neon-tetras-and-cardinal-tetras" },
     { tip: "Fish hold grudges -- they remember rivals they've lost fights to.", source: "https://spca.bc.ca/news/fun-facts-about-fish/" },
     { tip: "Weekly 25% water changes keep fish healthy. Like opening a window for fresh air.", source: "https://modestfish.com/how-to-cycle-your-aquarium/" },
     { tip: "Groupers gesture to moray eels to hunt together -- basically fish sign language.", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
@@ -38,8 +38,9 @@ let onAddFish = null; // callback
 let fishesRef = null;  // reference to fish array
 let getSaveStateRef = null; // callback to get current save state
 let lastWaterChangeTime = 0;
-const WATER_CHANGE_COOLDOWN = 60000; // 60 seconds
+const WATER_CHANGE_COOLDOWN = 30000; // 30 seconds
 let waterChangeCooldownInterval = null;
+let cooldownToastTimer = null;
 
 export function initUI(fishes, addFishCallback, getSaveState) {
     fishesRef = fishes;
@@ -66,9 +67,13 @@ export function initUI(fishes, addFishCallback, getSaveState) {
     document.getElementById('btn-water-change').addEventListener('click', () => {
         const remaining = WATER_CHANGE_COOLDOWN - (Date.now() - lastWaterChangeTime);
         if (remaining > 0) {
+            // Show brief toast message
             const secs = Math.ceil(remaining / 1000);
-            document.getElementById('water-change-cooldown').textContent =
-                `Wait ${secs}s — water needs time to settle before changing again.`;
+            const cooldownEl = document.getElementById('water-change-cooldown');
+            cooldownEl.textContent = `Fetching fresh water (${secs}s)`;
+            cooldownEl.classList.add('show');
+            clearTimeout(cooldownToastTimer);
+            cooldownToastTimer = setTimeout(() => cooldownEl.classList.remove('show'), 2000);
             return;
         }
         doWaterChange();
@@ -180,27 +185,33 @@ function refreshTankStats() {
 
 function updateWaterChangeButton() {
     const btn = document.getElementById('btn-water-change');
-    const cooldownEl = document.getElementById('water-change-cooldown');
     const remaining = WATER_CHANGE_COOLDOWN - (Date.now() - lastWaterChangeTime);
     if (remaining > 0) {
         const secs = Math.ceil(remaining / 1000);
+        const raw = Math.min((Date.now() - lastWaterChangeTime) / WATER_CHANGE_COOLDOWN, 1);
+        const pct = 20 + raw * 80; // start 20% filled, rise to 100%
         btn.textContent = `Change Water (${secs}s)`;
-        btn.classList.add('cooldown');
-        cooldownEl.textContent = 'Water needs time to settle before changing again.';
+        btn.classList.add('cooldown', 'filling');
+        btn.style.setProperty('--fill', pct + '%');
     } else {
         btn.textContent = 'Change Water (+10 XP, +5 coins)';
-        btn.classList.remove('cooldown');
-        cooldownEl.textContent = '';
+        btn.classList.remove('cooldown', 'filling');
+        btn.style.setProperty('--fill', '0%');
     }
 }
 
 function startWaterChangeCooldownTimer() {
     if (waterChangeCooldownInterval) clearInterval(waterChangeCooldownInterval);
+    const btn = document.getElementById('btn-water-change');
+    btn.classList.add('cooldown', 'filling');
     waterChangeCooldownInterval = setInterval(() => {
         const remaining = WATER_CHANGE_COOLDOWN - (Date.now() - lastWaterChangeTime);
         if (remaining <= 0) {
             clearInterval(waterChangeCooldownInterval);
             waterChangeCooldownInterval = null;
+            btn.classList.remove('cooldown', 'filling');
+            btn.style.setProperty('--fill', '0%');
+            document.getElementById('water-change-cooldown').classList.remove('show');
         }
         if (drawerOpen) updateWaterChangeButton();
     }, 1000);

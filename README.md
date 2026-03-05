@@ -1,37 +1,51 @@
-# Secret Life of Fishies
+# The Secret Life of Fishies
 
-A mobile-first interactive fish tank simulator served as a static site. Tilt your phone to switch between side view and top-down view. Feed your fish, keep the water clean, and grow your collection.
+**Your pocket aquarium.** A browser-based fish tank idle game where you feed, boop, and collect procedurally drawn fish -- all from your phone (or desktop). Tilt to peek from above, tap to drop food, and try not to let anyone swim away.
+
+![The Secret Life of Fishies](social-card.jpg)
+
+**Play now at [thesecretlifeoffishies.com](https://thesecretlifeoffishies.com)**
+
+## Gameplay
+
+![Gameplay screenshot showing fish swimming in the tank](screenshot-gameplay.png)
 
 ## Features
 
-- **Dual perspective** — tilt phone (or press V on desktop) to switch between side view and top-down view with smooth crossfade
-- **Procedural fish** — 14 species drawn entirely with canvas paths (no image assets), each with unique body shapes, colors, and tail styles
-- **Fish AI** — fish wander, seek food, eat, and respond to boops with playful animations
-- **Nitrogen cycle** — realistic water chemistry simulation (ammonia → nitrite → nitrate) with visual water tinting
-- **Progression system** — earn XP passively and through interactions, level up to unlock bigger tanks and new species
-- **Fish store** — buy fish from a catalog of 14 species across 7 levels
-- **Persistence** — auto-saves to localStorage with offline catch-up
+- **Dual perspective** -- tilt your phone to smoothly crossfade between side view and top-down view
+- **14 procedural fish species** -- Neon Tetras, Bettas, Angelfish, Discus, and more, all drawn with Canvas paths (zero image assets)
+- **Fish AI** -- they wander, seek food, eat, follow your finger, and react to boops with sparkle effects
+- **Real water chemistry** -- ammonia, nitrite, nitrate, bacteria, and algae follow a simplified nitrogen cycle that actually matters
+- **Decorations** -- Java Ferns, Castle Ruins, Coral Reefs, LED String Lights, and more that affect gameplay (reduce algae, boost happiness, speed up bacteria)
+- **Progression** -- earn XP and coins passively and through interactions, level up (7 levels) to unlock bigger tanks and new species
+- **Fish store** -- buy fish, food packs, decorations, and care items like Water Conditioner and Algae Scrub
+- **Fish happiness** -- a composite of hunger, strength, and water quality. Neglect them and they'll swim away
+- **Share your tank** -- generate a shareable link so friends can see your aquarium
+- **Offline catch-up** -- auto-saves to localStorage, calculates what happened while you were away
+- **Installable PWA** -- add to home screen for a full-screen app experience
 
 ## How to Play
 
-1. **Feed fish** — switch to top-down view and tap to drop food
-2. **Boop fish** — in side view, tap a fish for a playful swish (+1 XP)
-3. **Maintain water** — open the menu drawer and tap "Change Water" to reduce toxins (+10 XP)
-4. **Grow your tank** — earn XP to level up, unlock new species and bigger tanks
-5. **Don't neglect** — hungry or stressed fish will eventually swim away
-
-## Controls
-
 | Action | Mobile | Desktop |
 |--------|--------|---------|
-| Switch view | Tilt phone | Press V or Space |
-| Feed | Tap (top-down) | Click (top-down) |
-| Boop fish | Tap fish (side) | Click fish (side) |
-| Menu | Tap ☰ | Click ☰ |
+| Switch view | Tilt phone | Press **V** or **Space** |
+| Feed | Tap water (top-down view) | Click water (top-down view) |
+| Boop a fish | Tap fish (side view) | Click fish (side view) |
+| Attract fish | Hold finger near them | Hold cursor near them |
+| Inspect fish | Long-press a fish | Long-click a fish |
+| Open menu | Tap the hamburger icon | Click the hamburger icon |
 
-## Tech
+**Quick tips:**
+- Happy fish generate coins over time. Interacting with them boosts coin generation 3x.
+- Change water regularly to keep ammonia and nitrite low.
+- Don't overfeed -- uneaten food decays and fouls the water.
+- Fish that stay unhappy for too long will leave your tank.
 
-- Vanilla JS with ES modules, no build step
-- HTML5 Canvas for all rendering
-- localStorage for persistence
-- Works on GitHub Pages over HTTPS
+## Tech Stack
+
+- **Vanilla JavaScript** with ES modules -- no frameworks, no build step
+- **HTML5 Canvas 2D** for all rendering (fish, water, decorations, effects, bubbles)
+- **localStorage** for persistence
+- **DeviceOrientation API** for tilt controls on mobile
+- **Web Share API** for sharing tank snapshots
+- Hosted as a static site, works on GitHub Pages over HTTPS
