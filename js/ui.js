@@ -234,8 +234,10 @@ function refreshStore() {
         </div>
     `;
     if (canAffordFood) {
-        foodBtn.addEventListener('click', () => {
-            buyFoodPack();
+        foodBtn.addEventListener('click', (e) => {
+            if (buyFoodPack()) {
+                showFoodBuyAnimation(foodBtn);
+            }
             refreshStore();
         });
     }
@@ -703,6 +705,44 @@ export function updateFloatingTip(dt) {
             sourceEl.style.display = t.source ? '' : 'none';
         }
     }
+}
+
+let pelletPulseTimer = null;
+
+function showFoodBuyAnimation(btnEl) {
+    const btnRect = btnEl.getBoundingClientRect();
+    const pelletEl = document.getElementById('pellet-count');
+    const pelletRect = pelletEl.getBoundingClientRect();
+
+    // Create the floating "+10" label
+    const floater = document.createElement('div');
+    floater.textContent = '+10';
+    floater.className = 'food-buy-floater';
+    document.body.appendChild(floater);
+
+    // Start position: center of the buy button
+    const startX = btnRect.left + btnRect.width / 2;
+    const startY = btnRect.top + btnRect.height / 2;
+    // End position: pellet counter
+    const endX = pelletRect.left + pelletRect.width / 2;
+    const endY = pelletRect.top + pelletRect.height / 2;
+
+    // Phase 1: Rise up (0→0.45), Phase 2: Zip to counter (0.45→1)
+    floater.animate([
+        { left: startX + 'px', top: startY + 'px', opacity: 0, fontSize: '0.8rem', offset: 0 },
+        { left: startX + 'px', top: (startY - 60) + 'px', opacity: 1, fontSize: '1.3rem', offset: 0.45 },
+        { left: endX + 'px', top: endY + 'px', opacity: 0.6, fontSize: '0.7rem', offset: 1 },
+    ], {
+        duration: 800,
+        easing: 'ease-in-out',
+        fill: 'forwards',
+    }).onfinish = () => {
+        floater.remove();
+        // Pulse the pellet counter (reset timer on rapid clicks)
+        clearTimeout(pelletPulseTimer);
+        pelletEl.classList.add('pellet-pulse');
+        pelletPulseTimer = setTimeout(() => pelletEl.classList.remove('pellet-pulse'), 500);
+    };
 }
 
 function drawConfirmFish() {
