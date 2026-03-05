@@ -6,6 +6,7 @@ import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodT
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
+import { drawDecorationsSide, drawDecorationsTop } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { clamp, dist, rand } from './utils.js';
@@ -229,6 +230,13 @@ function render() {
     drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, viewAngle);
 
     const isTopDown = viewAngle > 0.9;
+
+    // Decorations (behind fish and food)
+    if (isTopDown) {
+        drawDecorationsTop(ctx, tankLeft, tankTop, tankW, tankH, gameTime);
+    } else {
+        drawDecorationsSide(ctx, tankLeft, tankTop, tankW, tankH, gameTime);
+    }
 
     // Food
     const foods = getFoods();

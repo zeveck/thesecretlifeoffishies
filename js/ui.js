@@ -1,6 +1,6 @@
 // ui.js — HUD overlay, drawer panel, interaction handling
 
-import { getTank, doWaterChange, DECORATIONS, CARE_ITEMS, hasDecoration, addDecoration, useCareItem, getDecorationHappinessBonus } from './tank.js';
+import { getTank, doWaterChange, DECORATIONS, CARE_ITEMS, hasDecoration, addDecoration, useCareItem } from './tank.js';
 import { getProgression, addXP, getXPProgress, getCurrentLevelInfo,
          getAllSpecies, canAddFish, getCurrentStockInches, getTankCapacity,
          getCoins, getPellets, spendCoins, fishCost, buyFoodPack, addCoins,

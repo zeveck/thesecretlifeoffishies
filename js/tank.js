@@ -21,6 +21,9 @@ export const DECORATIONS = [
     { id: 'castle', name: 'Castle Ruin', cost: 20, color: '#8a7a5a', desc: 'Fish feel safer (+happiness)', effect: 'happiness' },
     { id: 'coral', name: 'Coral Reef', cost: 25, color: '#e07060', desc: 'Absorbs nitrate', effect: 'nitrate' },
     { id: 'driftwood', name: 'Driftwood', cost: 12, color: '#7a5a3a', desc: 'Boosts bacteria growth', effect: 'bacteria' },
+    { id: 'led_lights', name: 'LED String Lights', cost: 18, color: '#e060e0', desc: 'Colorful lights (+happiness)', effect: 'happiness' },
+    { id: 'treasure_chest', name: 'Treasure Chest', cost: 22, color: '#c0a030', desc: 'Mysterious gold glow (+happiness)', effect: 'happiness' },
+    { id: 'rock_arch', name: 'Rock Arch', cost: 16, color: '#6a7a6a', desc: 'Natural hideout, boosts bacteria', effect: 'bacteria' },
 ];
 
 // Tank care items (consumable)
@@ -52,6 +55,8 @@ export function getDecorationHappinessBonus() {
     let bonus = 0;
     if (tank.decorations.includes('castle')) bonus += 5;
     if (tank.decorations.includes('coral')) bonus += 3;
+    if (tank.decorations.includes('led_lights')) bonus += 4;
+    if (tank.decorations.includes('treasure_chest')) bonus += 3;
     return bonus;
 }
 
@@ -106,7 +111,8 @@ function tickChemistry(fishInches, uneatenFood) {
     // Bacteria growth — slow, faster when ammonia present (Driftwood boosts)
     const ammoniaBonus = tank.ammonia > 1 ? 0.02 : 0;
     const driftwoodBonus = tank.decorations.includes('driftwood') ? 0.01 : 0;
-    tank.bacteria += 0.01 + ammoniaBonus + driftwoodBonus;
+    const archBonus = tank.decorations.includes('rock_arch') ? 0.008 : 0;
+    tank.bacteria += 0.01 + ammoniaBonus + driftwoodBonus + archBonus;
 
     // Clamp everything
     tank.ammonia = clamp(tank.ammonia, 0, 100);
