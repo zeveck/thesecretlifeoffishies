@@ -6,7 +6,7 @@ import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodT
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
 import { getViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, getRipples, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
-import { initUI, updateHUD, isDrawerOpen, decodeTankState } from './ui.js';
+import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { clamp, dist, rand } from './utils.js';
 
@@ -39,13 +39,27 @@ resize();
 let pointerDown = false;
 let pointerX = 0, pointerY = 0;
 let lastInteractionTime = 0;
+let longPressTimer = null;
+let showFishLabels = false;
+let longPressStartX = 0, longPressStartY = 0;
 
 canvas.addEventListener('pointerdown', (e) => {
     if (isDrawerOpen()) return;
     pointerDown = true;
     pointerX = e.clientX;
     pointerY = e.clientY;
+    longPressStartX = e.clientX;
+    longPressStartY = e.clientY;
     lastInteractionTime = Date.now();
+
+    // Start long-press timer (400ms) — only in side view
+    clearTimeout(longPressTimer);
+    if (getViewAngle() <= 0.9) {
+        longPressTimer = setTimeout(() => {
+            showFishLabels = true;
+        }, 400);
+    }
+
     handleTap(e.clientX, e.clientY);
 });
 
@@ -53,12 +67,39 @@ canvas.addEventListener('pointermove', (e) => {
     if (!pointerDown) return;
     pointerX = e.clientX;
     pointerY = e.clientY;
+    // Cancel long-press if finger moves more than 10px
+    if (longPressTimer) {
+        const dx = e.clientX - longPressStartX;
+        const dy = e.clientY - longPressStartY;
+        if (dx * dx + dy * dy > 100) { // 10px threshold
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    }
 });
 
-canvas.addEventListener('pointerup', () => { pointerDown = false; clearFingerFollow(); });
-canvas.addEventListener('pointercancel', () => { pointerDown = false; clearFingerFollow(); });
+canvas.addEventListener('pointerup', () => {
+    pointerDown = false;
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    // If labels aren't showing, just clear follow; otherwise leave labels up
+    if (!showFishLabels) clearFingerFollow();
+});
+canvas.addEventListener('pointercancel', () => {
+    pointerDown = false;
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    clearFingerFollow();
+});
 
 function handleTap(px, py) {
+    // If labels are showing, tap anywhere dismisses them
+    if (showFishLabels) {
+        showFishLabels = false;
+        clearFingerFollow();
+        return;
+    }
+
     const viewAngle = getViewAngle();
 
     if (viewAngle > 0.9) {
@@ -166,6 +207,9 @@ function update(dt) {
     if (Math.floor(gameTime * 4) !== Math.floor((gameTime - dt) * 4)) {
         updateHUD();
     }
+
+    // Floating tips
+    updateFloatingTip(dt);
 }
 
 function render() {
@@ -211,6 +255,67 @@ function render() {
 
     // Boop sparkles
     drawBoopEffects(ctx, TICK);
+
+    // Fish info labels (long-press)
+    if (showFishLabels && !isTopDown) {
+        drawFishLabels(ctx);
+    }
+}
+
+function drawFishLabels(ctx) {
+    for (const fish of fishes) {
+        const sx = tankLeft + (fish.x / 100) * tankW;
+        const sy = tankTop + (fish.y / 100) * tankH;
+        const size = fish.getSizePixels();
+
+        const labelX = sx;
+        const labelY = sy - size - 12;
+
+        // Background
+        const name = fish.displayName();
+        ctx.font = '600 11px -apple-system, sans-serif';
+        const textW = ctx.measureText(name).width;
+        const boxW = Math.max(textW + 16, 70);
+        const boxH = 36;
+
+        ctx.fillStyle = 'rgba(10, 22, 40, 0.85)';
+        ctx.beginPath();
+        const rx = labelX - boxW / 2, ry = labelY - boxH;
+        if (ctx.roundRect) {
+            ctx.roundRect(rx, ry, boxW, boxH, 6);
+        } else {
+            ctx.rect(rx, ry, boxW, boxH);
+        }
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(74, 158, 255, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Name
+        ctx.fillStyle = '#d0e4f0';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(name, labelX, labelY - boxH + 5);
+
+        // Mini happiness bar
+        const barY = labelY - boxH + 20;
+        const barW = boxW - 12;
+        const barX = labelX - barW / 2;
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(barX, barY, barW, 4);
+        const hColor = fish.happiness > 60 ? '#4caf50' : fish.happiness > 30 ? '#f9a825' : '#ef5350';
+        ctx.fillStyle = hColor;
+        ctx.fillRect(barX, barY, barW * (fish.happiness / 100), 4);
+
+        // Mood text
+        const mood = fish.happiness > 70 ? 'Happy' : fish.happiness > 40 ? 'OK' : fish.happiness > 20 ? 'Stressed' : 'Sad';
+        ctx.font = '9px -apple-system, sans-serif';
+        ctx.fillStyle = 'rgba(176,200,224,0.6)';
+        ctx.fillText(mood, labelX, barY + 6);
+
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+    }
 }
 
 // Fixed timestep update, variable render

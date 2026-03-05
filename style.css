@@ -37,6 +37,28 @@ canvas#tank {
 }
 #start-btn:active { background: rgba(74, 158, 255, 0.35); }
 
+/* Floating tip */
+#floating-tip {
+    position: fixed; top: 60px; left: 50%;
+    transform: translateX(-50%);
+    max-width: min(400px, 85vw); padding: 10px 14px;
+    background: rgba(10, 22, 40, 0.85);
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 10px; z-index: 8;
+    font-size: 0.72rem; color: rgba(176, 200, 224, 0.7);
+    line-height: 1.5; text-align: center;
+    pointer-events: auto;
+    animation: tipFadeIn 1s ease;
+    transition: opacity 1s;
+}
+#floating-tip.hidden { opacity: 0; pointer-events: none; }
+#tip-source {
+    color: rgba(74, 158, 255, 0.5); text-decoration: none;
+    font-size: 0.65rem; margin-left: 6px;
+}
+#tip-source:hover { color: #4a9eff; text-decoration: underline; }
+@keyframes tipFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
 /* HUD */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #hud > * { pointer-events: auto; }
@@ -165,11 +187,20 @@ canvas#tank {
     margin-bottom: 12px;
 }
 #btn-water-change:active { background: rgba(74, 158, 255, 0.25); }
+#btn-water-change.cooldown {
+    opacity: 0.5; border-color: #506878; color: #506878;
+    cursor: default;
+}
+#water-change-cooldown {
+    font-size: 0.7rem; color: #506878; margin-top: 4px;
+    min-height: 1em;
+}
 
 .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
     font-size: 0.85rem; color: #7090a8; cursor: pointer;
 }
+.toggle-row + .toggle-row { margin-top: 10px; }
 .toggle-row input[type="checkbox"] {
     width: 18px; height: 18px; accent-color: #4a9eff;
 }
@@ -256,6 +287,28 @@ canvas#tank {
 }
 .tips-list li::before { content: "- "; color: #4a6a80; }
 
+/* Store pills */
+#store-pills {
+    display: flex; gap: 6px; margin-bottom: 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.store-pill {
+    padding: 5px 12px; border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04); color: #7090a8;
+    font-size: 0.72rem; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s;
+}
+.store-pill.active {
+    background: rgba(74, 158, 255, 0.15); color: #4a9eff;
+    border-color: #4a9eff;
+}
+.store-section-header {
+    font-size: 0.75rem; color: #506878; text-transform: uppercase;
+    letter-spacing: 0.05em; margin: 14px 0 6px; padding-left: 2px;
+}
+.store-section-header:first-child { margin-top: 0; }
+
 /* Store list */
 #store-capacity {
     font-size: 0.8rem; color: #6090b0; margin-bottom: 12px;
@@ -280,6 +333,30 @@ canvas#tank {
     width: 10px; height: 10px; border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* Fish cards */
+.fish-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; margin-bottom: 10px;
+    background: rgba(255,255,255,0.04); border-radius: 10px;
+    cursor: pointer; transition: background 0.15s;
+}
+.fish-card:active { background: rgba(255,255,255,0.08); }
+.fish-portrait { flex-shrink: 0; border-radius: 8px; }
+.fish-card-info { flex: 1; min-width: 0; }
+.fish-card-name {
+    font-size: 1rem; font-weight: 600; color: #d0e4f0;
+    margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fish-card-species { font-size: 0.7rem; color: #506878; margin-bottom: 6px; }
+.fish-card-stats { display: flex; flex-direction: column; gap: 3px; }
+.fish-stat-bar {
+    display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: #607888;
+}
+.fish-stat-bar span:first-child { width: 48px; flex-shrink: 0; }
+.fish-stat-bar .bar-bg { flex: 1; height: 5px; }
+.fish-stat-bar .stat-label { width: 40px; text-align: right; font-size: 0.6rem; }
+.fish-card-detail { font-size: 0.65rem; color: #506878; margin-top: 4px; }
 
 /* Fish stats popup */
 

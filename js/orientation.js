@@ -10,6 +10,9 @@ let permissionGranted = false;
 let suppressUntil = 0; // timestamp — ignore orientation events until this time
 let showToggleOnMobile = true;
 
+// Mobile view mode: 'tilt' | 'side' | 'top'
+let mobileViewMode = 'tilt';
+
 const SMOOTH_FACTOR = 0.08;
 const MIN_EVENTS_FOR_MOBILE = 3; // need several events to confirm real sensor
 
@@ -44,7 +47,11 @@ function handleOrientation(e) {
         isDesktop = false;
         const btn = document.getElementById('view-toggle-btn');
         if (btn) btn.classList.toggle('hidden', !showToggleOnMobile);
+        updateToggleButtonLabel();
     }
+
+    // Only follow tilt when in tilt mode
+    if (mobileViewMode !== 'tilt') return;
 
     // beta: 0 = flat (top-down), 90 = upright (side view)
     const beta = clamp(e.beta || 0, 0, 90);
@@ -71,7 +78,36 @@ export async function requestOrientationPermission() {
 }
 
 export function toggleView() {
-    targetViewAngle = targetViewAngle > 0.5 ? 0 : 1;
+    if (isDesktop) {
+        // Desktop: simple toggle side/top
+        targetViewAngle = targetViewAngle > 0.5 ? 0 : 1;
+    } else {
+        // Mobile: cycle Side -> Top -> Tilt
+        if (mobileViewMode === 'tilt') {
+            mobileViewMode = 'side';
+            targetViewAngle = 0;
+        } else if (mobileViewMode === 'side') {
+            mobileViewMode = 'top';
+            targetViewAngle = 1;
+        } else {
+            mobileViewMode = 'tilt';
+        }
+        updateToggleButtonLabel();
+    }
+}
+
+function updateToggleButtonLabel() {
+    const btn = document.getElementById('view-toggle-btn');
+    if (!btn) return;
+    if (isDesktop) {
+        btn.textContent = '\u21C5'; // ⇕
+        btn.title = 'Toggle View';
+    } else {
+        const labels = { tilt: '\u21C5', side: '\u2014', top: '\u25CE' };
+        const titles = { tilt: 'Tilt Control', side: 'Side View (locked)', top: 'Top View (locked)' };
+        btn.textContent = labels[mobileViewMode];
+        btn.title = titles[mobileViewMode];
+    }
 }
 
 export function setShowToggleOnMobile(show) {
@@ -86,6 +122,17 @@ export function getShowToggleOnMobile() {
     return showToggleOnMobile;
 }
 
+export function getMobileViewMode() {
+    return mobileViewMode;
+}
+
+export function setMobileViewMode(mode) {
+    mobileViewMode = mode;
+    if (mode === 'side') targetViewAngle = 0;
+    else if (mode === 'top') targetViewAngle = 1;
+    updateToggleButtonLabel();
+}
+
 export function initDesktopControls() {
     // Show toggle button after short delay
     setTimeout(() => {
@@ -96,6 +143,7 @@ export function initDesktopControls() {
             } else {
                 btn.classList.toggle('hidden', !showToggleOnMobile);
             }
+            updateToggleButtonLabel();
         }
     }, 500);
 

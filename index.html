@@ -80,6 +80,12 @@
         </div>
     </div>
 
+    <!-- Floating tip -->
+    <div id="floating-tip" class="hidden">
+        <span id="tip-text"></span>
+        <a id="tip-source" target="_blank" rel="noopener">read more</a>
+    </div>
+
     <!-- HUD -->
     <div id="hud">
         <div id="hud-top-left">
@@ -124,6 +130,7 @@
                 <div class="stat-row"><label>Algae</label><div class="bar-bg"><div class="bar algae-bar"></div></div><span class="stat-val algae-val">0</span></div>
                 <div class="tank-actions">
                     <button id="btn-water-change">Change Water (+10 XP, +5 coins)</button>
+                    <div id="water-change-cooldown"></div>
                     <label class="toggle-row">
                         <span>Free Feed Mode</span>
                         <input type="checkbox" id="toggle-free-feed">
@@ -146,7 +153,12 @@
                 </div>
             </div>
             <div id="tab-store" class="tab-panel">
-                <h3>Fish Store</h3>
+                <div id="store-pills">
+                    <button class="store-pill active" data-section="food">Food</button>
+                    <button class="store-pill" data-section="fish">Fish</button>
+                    <button class="store-pill" data-section="decor">Decor</button>
+                    <button class="store-pill" data-section="care">Care</button>
+                </div>
                 <div id="store-capacity"></div>
                 <div id="store-list"></div>
             </div>
