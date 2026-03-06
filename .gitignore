@@ -1,2 +1,5 @@
 .playwright/
 .claude/settings.local.json
+node_modules/
+test-results/
+playwright-report/

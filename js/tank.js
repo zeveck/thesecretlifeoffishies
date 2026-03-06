@@ -72,6 +72,10 @@ export function getDecorationHappinessBonus() {
 // Accumulator for per-second chemistry ticks
 let chemAccum = 0;
 
+export function resetChemAccum() {
+    chemAccum = 0;
+}
+
 export function getTank() {
     return tank;
 }
