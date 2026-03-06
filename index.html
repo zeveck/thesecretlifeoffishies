@@ -203,6 +203,33 @@
         </div>
     </div>
 
+    <!-- Update banner -->
+    <div id="sw-update" class="hidden">
+        New version available
+        <button id="sw-update-btn">Refresh</button>
+    </div>
+
     <script type="module" src="js/main.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+            if (reg.waiting) showUpdateBanner(reg.waiting);
+            reg.addEventListener('updatefound', () => {
+                const nw = reg.installing;
+                nw.addEventListener('statechange', () => {
+                    if (nw.state === 'installed' && navigator.serviceWorker.controller)
+                        showUpdateBanner(nw);
+                });
+            });
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+    }
+    function showUpdateBanner(worker) {
+        const el = document.getElementById('sw-update');
+        if (el) el.classList.remove('hidden');
+        const btn = document.getElementById('sw-update-btn');
+        if (btn) btn.onclick = () => worker.postMessage({ type: 'SKIP_WAITING' });
+    }
+    </script>
 </body>
 </html>

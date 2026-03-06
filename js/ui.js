@@ -26,6 +26,7 @@ const FISH_TIPS = [
     { tip: "Elephantnose fish play fetch -- pushing a ball into a current and chasing it.", source: "https://en.wikipedia.org/wiki/Fish_intelligence" },
     { tip: "Neon tetras school in sync to look like one big fish. Mesmerizing in groups of 10+.", source: "https://www.aquariumcoop.com/blogs/aquarium/neon-tetras-and-cardinal-tetras" },
     { tip: "Fish hold grudges -- they remember rivals they've lost fights to.", source: "https://spca.bc.ca/news/fun-facts-about-fish/" },
+    { tip: "Your bacteria colony is your best friend -- it eats toxic ammonia and keeps fish safe.", source: "https://www.aquariumcoop.com/blogs/aquarium/nitrogen-cycle" },
     { tip: "Weekly 25% water changes keep fish healthy. Like opening a window for fresh air.", source: "https://modestfish.com/how-to-cycle-your-aquarium/" },
     { tip: "Groupers gesture to moray eels to hunt together -- basically fish sign language.", source: "https://www.onegreenplanet.org/animalsandnature/10-facts-that-prove-fish-are-highly-intelligent-and-emotional-creatures/" },
 ];

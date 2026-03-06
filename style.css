@@ -384,3 +384,17 @@ canvas#tank {
 .fish-stat-bar .stat-label { width: 40px; text-align: right; font-size: 0.6rem; }
 .fish-card-detail { font-size: 0.65rem; color: #506878; margin-top: 4px; }
 
+/* SW update banner */
+#sw-update {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: #1a2a40; border: 1px solid #4a9eff; border-radius: 10px;
+    padding: 10px 16px; color: #b0d4f1; font-size: 0.8rem;
+    display: flex; align-items: center; gap: 12px; z-index: 200;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+#sw-update.hidden { display: none; }
+#sw-update-btn {
+    background: #4a9eff; color: #fff; border: none;
+    padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+}
+
