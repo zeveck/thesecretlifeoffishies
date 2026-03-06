@@ -2,8 +2,8 @@
 
 import { getTank, hasDecoration } from './tank.js';
 
-// Fixed positions for decorations (tank-percentage coordinates)
-const POSITIONS = {
+// Default positions for decorations (tank-percentage coordinates)
+export const DEFAULT_POSITIONS = {
     java_fern:      { x: 15, y: 92 },
     castle:         { x: 78, y: 88 },
     coral:          { x: 50, y: 90 },
@@ -13,16 +13,25 @@ const POSITIONS = {
     rock_arch:      { x: 42, y: 90 },
 };
 
+// Hit radii for drag detection (tank-% units). 0 = not draggable
+export const HIT_RADII = {
+    java_fern:      5,
+    castle:         5,
+    coral:          5,
+    driftwood:      6,
+    led_lights:     0,
+    treasure_chest: 4,
+    rock_arch:      5,
+};
+
 // --- Side View ---
 
 export function drawDecorationsSide(ctx, tl, tt, tw, th, time) {
     const owned = getTank().decorations;
-    for (const id of owned) {
-        const pos = POSITIONS[id];
-        if (!pos) continue;
-        const cx = tl + (pos.x / 100) * tw;
-        const cy = tt + (pos.y / 100) * th;
-        switch (id) {
+    for (const deco of owned) {
+        const cx = tl + (deco.x / 100) * tw;
+        const cy = tt + (deco.y / 100) * th;
+        switch (deco.id) {
             case 'java_fern':      drawFernSide(ctx, cx, cy, tw, th, time); break;
             case 'castle':         drawCastleSide(ctx, cx, cy, tw, th, time); break;
             case 'coral':          drawCoralSide(ctx, cx, cy, tw, th, time); break;
@@ -38,12 +47,10 @@ export function drawDecorationsSide(ctx, tl, tt, tw, th, time) {
 
 export function drawDecorationsTop(ctx, tl, tt, tw, th, time) {
     const owned = getTank().decorations;
-    for (const id of owned) {
-        const pos = POSITIONS[id];
-        if (!pos) continue;
-        const cx = tl + (pos.x / 100) * tw;
-        const cy = tt + (pos.y / 100) * th;
-        switch (id) {
+    for (const deco of owned) {
+        const cx = tl + (deco.x / 100) * tw;
+        const cy = tt + (deco.y / 100) * th;
+        switch (deco.id) {
             case 'java_fern':      drawFernTop(ctx, cx, cy, tw, th, time); break;
             case 'castle':         drawCastleTop(ctx, cx, cy, tw, th); break;
             case 'coral':          drawCoralTop(ctx, cx, cy, tw, th, time); break;

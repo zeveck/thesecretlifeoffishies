@@ -1,6 +1,7 @@
 // tank.js — Tank state: water chemistry (nitrogen cycle), algae
 
 import { clamp } from './utils.js';
+import { DEFAULT_POSITIONS } from './decorations.js';
 
 const tank = {
     ammonia: 0,
@@ -33,12 +34,20 @@ export const CARE_ITEMS = [
 ];
 
 export function hasDecoration(id) {
-    return tank.decorations.includes(id);
+    return tank.decorations.some(d => d.id === id);
 }
 
 export function addDecoration(id) {
-    if (!tank.decorations.includes(id)) {
-        tank.decorations.push(id);
+    if (!tank.decorations.some(d => d.id === id)) {
+        const pos = DEFAULT_POSITIONS[id] || { x: 50, y: 90 };
+        tank.decorations.push({ id, x: pos.x, y: pos.y });
+    }
+}
+
+export function moveDecoration(index, x, y) {
+    if (index >= 0 && index < tank.decorations.length) {
+        tank.decorations[index].x = x;
+        tank.decorations[index].y = y;
     }
 }
 
@@ -53,10 +62,10 @@ export function useCareItem(id) {
 
 export function getDecorationHappinessBonus() {
     let bonus = 0;
-    if (tank.decorations.includes('castle')) bonus += 5;
-    if (tank.decorations.includes('coral')) bonus += 3;
-    if (tank.decorations.includes('led_lights')) bonus += 4;
-    if (tank.decorations.includes('treasure_chest')) bonus += 3;
+    if (hasDecoration('castle')) bonus += 5;
+    if (hasDecoration('coral')) bonus += 3;
+    if (hasDecoration('led_lights')) bonus += 4;
+    if (hasDecoration('treasure_chest')) bonus += 3;
     return bonus;
 }
 
@@ -100,18 +109,18 @@ function tickChemistry(fishInches, uneatenFood) {
     tank.nitrate += nitriteConverted * 0.67;
 
     // Algae from nitrate (Java Fern reduces by 50%)
-    const algaeRate = tank.decorations.includes('java_fern') ? 0.00025 : 0.0005;
+    const algaeRate = hasDecoration('java_fern') ? 0.00025 : 0.0005;
     tank.algae += tank.nitrate * algaeRate;
 
     // Coral absorbs nitrate
-    if (tank.decorations.includes('coral')) {
+    if (hasDecoration('coral')) {
         tank.nitrate *= 0.998;
     }
 
     // Bacteria growth — slow, faster when ammonia present (Driftwood boosts)
     const ammoniaBonus = tank.ammonia > 1 ? 0.002 : 0;
-    const driftwoodBonus = tank.decorations.includes('driftwood') ? 0.001 : 0;
-    const archBonus = tank.decorations.includes('rock_arch') ? 0.0008 : 0;
+    const driftwoodBonus = hasDecoration('driftwood') ? 0.001 : 0;
+    const archBonus = hasDecoration('rock_arch') ? 0.0008 : 0;
     tank.bacteria += 0.001 + ammoniaBonus + driftwoodBonus + archBonus;
 
     // Clamp everything
@@ -154,7 +163,16 @@ export function loadTankState(state) {
     tank.freeFeed = state.freeFeed ?? false;
     tank.gallons = state.gallons ?? 10;
     tank.capacityInches = state.capacityInches ?? 5;
-    tank.decorations = state.decorations ?? [];
+    // Migrate old string[] format to object[]
+    const rawDecos = state.decorations ?? [];
+    if (rawDecos.length > 0 && typeof rawDecos[0] === 'string') {
+        tank.decorations = rawDecos.map(id => {
+            const pos = DEFAULT_POSITIONS[id] || { x: 50, y: 90 };
+            return { id, x: pos.x, y: pos.y };
+        });
+    } else {
+        tank.decorations = rawDecos;
+    }
 }
 
 export function saveTankState() {
