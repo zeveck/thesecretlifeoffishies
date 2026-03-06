@@ -85,15 +85,32 @@ export function initUI(fishes, addFishCallback, getSaveState) {
         startWaterChangeCooldownTimer();
     });
 
-    // Free feed toggle
+    // Config dialog
+    document.getElementById('btn-config').addEventListener('click', openConfigDialog);
+    document.getElementById('config-overlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeConfigDialog();
+    });
+    document.getElementById('btn-config-close').addEventListener('click', closeConfigDialog);
+
+    // Config toggles
     document.getElementById('toggle-free-feed').addEventListener('change', (e) => {
         getTank().freeFeed = e.target.checked;
         updateHUD();
     });
-
-    // Show view toggle on mobile
     document.getElementById('toggle-show-view').addEventListener('change', (e) => {
         setShowToggleOnMobile(e.target.checked);
+    });
+    document.getElementById('toggle-high-contrast').addEventListener('change', (e) => {
+        document.body.classList.toggle('high-contrast', e.target.checked);
+    });
+
+    // Reset game — in config dialog
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        closeConfigDialog();
+        showConfirm('Reset everything? All fish, coins, and progress will be lost.', () => {
+            clearSave();
+            location.reload();
+        });
     });
 
     // Export save
@@ -130,14 +147,6 @@ export function initUI(fishes, addFishCallback, getSaveState) {
         fileInput.value = '';
     });
 
-    // Reset game — in-game confirm
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        showConfirm('Reset everything? All fish, coins, and progress will be lost.', () => {
-            clearSave();
-            location.reload();
-        });
-    });
-
     // Share button
     document.getElementById('btn-share').addEventListener('click', () => {
         shareTank(document.getElementById('btn-share'));
@@ -165,6 +174,18 @@ export function isDrawerOpen() {
     return drawerOpen;
 }
 
+function openConfigDialog() {
+    const overlay = document.getElementById('config-overlay');
+    document.getElementById('toggle-free-feed').checked = getTank().freeFeed;
+    document.getElementById('toggle-show-view').checked = getShowToggleOnMobile();
+    document.getElementById('toggle-high-contrast').checked = document.body.classList.contains('high-contrast');
+    overlay.classList.remove('hidden');
+}
+
+function closeConfigDialog() {
+    document.getElementById('config-overlay').classList.add('hidden');
+}
+
 function refreshTankStats() {
     const tank = getTank();
     setBar('.ammonia-bar', tank.ammonia);
@@ -179,8 +200,6 @@ function refreshTankStats() {
     setText('.bacteria-val', Math.round(tank.bacteria));
     setText('.algae-val', Math.round(tank.algae));
 
-    document.getElementById('toggle-free-feed').checked = tank.freeFeed;
-    document.getElementById('toggle-show-view').checked = getShowToggleOnMobile();
     updateWaterChangeButton();
 }
 

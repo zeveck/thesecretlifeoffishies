@@ -1,12 +1,12 @@
 // main.js — Entry point, game loop, canvas setup, init
 
 import { Fish, SPECIES_CATALOG } from './fish.js';
-import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry } from './tank.js';
+import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry, moveDecoration } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
-import { drawDecorationsSide, drawDecorationsTop } from './decorations.js';
+import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { clamp, dist, rand } from './utils.js';
@@ -43,6 +43,8 @@ let lastInteractionTime = 0;
 let longPressTimer = null;
 let showFishLabels = false;
 let longPressStartX = 0, longPressStartY = 0;
+let draggingDeco = null;    // index into tank.decorations, or null
+let decoGrabOffset = null;  // { dx, dy } so decoration doesn't snap to finger center
 
 canvas.addEventListener('pointerdown', (e) => {
     if (isDrawerOpen()) return;
@@ -53,13 +55,30 @@ canvas.addEventListener('pointerdown', (e) => {
     longPressStartY = e.clientY;
     lastInteractionTime = Date.now();
 
-    // Start long-press timer (400ms) — only in side view
+    // Start long-press timer (400ms) — check decorations first, then fish labels
     clearTimeout(longPressTimer);
-    if (getViewAngle() <= 0.9) {
-        longPressTimer = setTimeout(() => {
+    longPressTimer = setTimeout(() => {
+        // Check decorations first (works in both views)
+        const decos = getTank().decorations;
+        const pxPct = ((longPressStartX - tankLeft) / tankW) * 100;
+        const pyPct = ((longPressStartY - tankTop) / tankH) * 100;
+        for (let i = 0; i < decos.length; i++) {
+            const deco = decos[i];
+            const hitR = HIT_RADII[deco.id] || 0;
+            if (hitR <= 0) continue;
+            const ddx = pxPct - deco.x;
+            const ddy = pyPct - deco.y;
+            if (ddx * ddx + ddy * ddy < hitR * hitR) {
+                draggingDeco = i;
+                decoGrabOffset = { dx: deco.x - pxPct, dy: deco.y - pyPct };
+                return;
+            }
+        }
+        // No decoration hit — show fish labels (side view only)
+        if (getViewAngle() <= 0.9) {
             showFishLabels = true;
-        }, 400);
-    }
+        }
+    }, 400);
 
     handleTap(e.clientX, e.clientY);
 });
@@ -68,6 +87,17 @@ canvas.addEventListener('pointermove', (e) => {
     if (!pointerDown) return;
     pointerX = e.clientX;
     pointerY = e.clientY;
+
+    // Dragging a decoration — move it to follow pointer
+    if (draggingDeco !== null) {
+        const pxPct = ((e.clientX - tankLeft) / tankW) * 100;
+        const pyPct = ((e.clientY - tankTop) / tankH) * 100;
+        const newX = clamp(pxPct + decoGrabOffset.dx, 2, 98);
+        const newY = clamp(pyPct + decoGrabOffset.dy, 2, 98);
+        moveDecoration(draggingDeco, newX, newY);
+        return;
+    }
+
     // Cancel long-press if finger moves more than 10px
     if (longPressTimer) {
         const dx = e.clientX - longPressStartX;
@@ -83,13 +113,16 @@ canvas.addEventListener('pointerup', () => {
     pointerDown = false;
     clearTimeout(longPressTimer);
     longPressTimer = null;
-    // If labels aren't showing, just clear follow; otherwise leave labels up
-    if (!showFishLabels) clearFingerFollow();
+    draggingDeco = null;
+    decoGrabOffset = null;
+    clearFingerFollow();
 });
 canvas.addEventListener('pointercancel', () => {
     pointerDown = false;
     clearTimeout(longPressTimer);
     longPressTimer = null;
+    draggingDeco = null;
+    decoGrabOffset = null;
     clearFingerFollow();
 });
 
@@ -353,6 +386,7 @@ function getSaveState() {
         settings: {
             freeFeed: getTank().freeFeed,
             showViewToggle: document.getElementById('toggle-show-view')?.checked ?? true,
+            highContrast: document.body.classList.contains('high-contrast'),
             mobileViewMode: getMobileViewMode(),
             viewAngle: Math.round(getViewAngle()),
         },
@@ -401,8 +435,9 @@ function init() {
             getTank().freeFeed = saved.settings.freeFeed ?? false;
             const showToggle = saved.settings.showViewToggle ?? true;
             setShowToggleOnMobile(showToggle);
-            const toggleEl = document.getElementById('toggle-show-view');
-            if (toggleEl) toggleEl.checked = showToggle;
+            if (saved.settings.highContrast) {
+                document.body.classList.add('high-contrast');
+            }
             if (saved.settings.viewAngle !== undefined) {
                 setViewAngle(saved.settings.viewAngle);
             }

@@ -135,7 +135,7 @@ canvas#tank {
     z-index: 30; transform: translateX(0);
     transition: transform 0.3s ease;
     display: flex; flex-direction: column;
-    color: #b0c8e0;
+    color: #c8ddf0;
 }
 #drawer.hidden { transform: translateX(100%); }
 
@@ -162,7 +162,7 @@ canvas#tank {
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 10px; font-size: 0.8rem;
 }
-.stat-row label { width: 60px; color: #7090a8; }
+.stat-row label { width: 60px; color: #90b0c8; }
 .bar-bg {
     flex: 1; height: 8px; background: rgba(255,255,255,0.08);
     border-radius: 4px; overflow: hidden;
@@ -173,7 +173,7 @@ canvas#tank {
 .nitrate-bar { background: #6abe6a; }
 .bacteria-bar { background: #5a9ed6; }
 .algae-bar { background: #7ab85a; }
-.stat-val { width: 28px; text-align: right; font-size: 0.75rem; color: #608090; }
+.stat-val { width: 28px; text-align: right; font-size: 0.75rem; color: #7898a8; }
 
 .tank-actions { margin-top: 16px; }
 #btn-water-change {
@@ -211,7 +211,7 @@ canvas#tank {
 
 .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
-    font-size: 0.85rem; color: #7090a8; cursor: pointer;
+    font-size: 0.85rem; color: #90b0c8; cursor: pointer;
 }
 .toggle-row + .toggle-row { margin-top: 10px; }
 .toggle-row input[type="checkbox"] {
@@ -296,7 +296,7 @@ canvas#tank {
 .tips-section { margin-top: 16px; }
 .tips-list {
     list-style: none; padding: 0; margin: 0;
-    font-size: 0.78rem; color: #608090; line-height: 1.6;
+    font-size: 0.78rem; color: #7898a8; line-height: 1.6;
 }
 .tips-list li::before { content: "- "; color: #4a6a80; }
 
@@ -397,4 +397,56 @@ canvas#tank {
     background: #4a9eff; color: #fff; border: none;
     padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;
 }
+
+/* Gear button in drawer footer — inherits .data-buttons button blue style */
+#btn-config { position: relative; }
+#btn-config svg {
+    display: block; width: 18px; height: 18px; margin: 1px auto 0;
+}
+
+/* Config dialog */
+#config-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+}
+#config-overlay.hidden { display: none; }
+#config-dialog {
+    background: #0f1d30; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 20px 24px;
+    max-width: 300px; width: 85vw; color: #c8ddf0;
+}
+#config-dialog h3 {
+    font-size: 0.9rem; color: #6090b0; margin-bottom: 16px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+#config-dialog .toggle-row { margin-bottom: 14px; }
+.config-reset-btn {
+    width: 100%; padding: 10px; border-radius: 8px;
+    font-size: 0.85rem; cursor: pointer; margin-top: 8px;
+}
+#btn-config-close {
+    width: 100%; padding: 10px; margin-top: 8px;
+    border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+}
+#btn-config-close:active { background: rgba(74, 158, 255, 0.25); }
+
+/* High-contrast mode */
+body.high-contrast #drawer { color: #e8f0f8; }
+body.high-contrast .stat-row label { color: #c0d0e0; }
+body.high-contrast .stat-val { color: #a0b8c8; }
+body.high-contrast .toggle-row { color: #c0d0e0; }
+body.high-contrast .tips-list { color: #a0b8c8; }
+body.high-contrast #coin-count { color: #ffe060; }
+body.high-contrast #pellet-count { color: #b8e0b8; }
+body.high-contrast #xp-label { color: rgba(255,255,255,0.7); }
+body.high-contrast #happy-count { color: #ff9090; }
+body.high-contrast #tank-tip-text { color: #e8f0f8; }
+body.high-contrast #config-dialog { color: #e8f0f8; }
+body.high-contrast #confirm-dialog { color: #e8f0f8; }
+body.high-contrast #drawer { background: rgba(15, 29, 48, 0.97); }
+body.high-contrast .tab-panel h3 { color: #80a8c8; }
 
