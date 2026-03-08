@@ -510,3 +510,51 @@ body.high-contrast .tab-panel h3 { color: #80a8c8; }
     margin-top: 2px;
 }
 
+/* Breed tag in store */
+.breed-tag {
+    display: inline-block;
+    font-size: 0.55rem;
+    color: #ff7090;
+    background: rgba(255, 80, 120, 0.12);
+    border: 1px solid rgba(255, 80, 120, 0.25);
+    border-radius: 8px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+    font-weight: 400;
+}
+
+/* Breed info in fish cards */
+.breed-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    color: #ff7090;
+    margin-top: 4px;
+}
+.breed-heart {
+    font-size: 0.7rem;
+    flex-shrink: 0;
+}
+.breed-progress-bg {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 80, 120, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.breed-progress-bar {
+    height: 100%;
+    background: #ff7090;
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+.breed-pct {
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+    font-size: 0.55rem;
+    color: #a06070;
+}
+

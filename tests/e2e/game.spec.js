@@ -132,6 +132,7 @@ test.describe('Config dialog', () => {
         await startGame(page);
         await page.locator('#menu-btn').click();
         await page.locator('#btn-config').click();
+        await expect(page.locator('#config-overlay')).not.toHaveClass(/hidden/);
 
         const toggle = page.locator('#toggle-show-view');
         await expect(toggle).toBeChecked();
@@ -475,6 +476,31 @@ test.describe('My Fish tab', () => {
         const stats = page.locator('.fish-stat-bar');
         // Each fish card has Mood, Hunger, Strength bars = 6 total for 2 fish
         await expect(stats).toHaveCount(6);
+    });
+});
+
+// --- Breed Pair Tests ---
+test.describe('Breed pairs', () => {
+    test('live bearer species show "Breeds in pairs" tag in store', async ({ page }) => {
+        await startGame(page);
+        await page.locator('#menu-btn').click();
+        await page.locator('.tab[data-tab="store"]').click();
+
+        const storeList = page.locator('#store-list');
+        // Guppy is a live bearer and should have the breed tag
+        const guppyBreedTag = storeList.locator('.breed-tag');
+        await expect(guppyBreedTag.first()).toBeVisible();
+        await expect(guppyBreedTag.first()).toHaveText('Breeds in pairs');
+    });
+
+    test('non-live-bearer species do not show breed tag', async ({ page }) => {
+        await startGame(page);
+        await page.locator('#menu-btn').click();
+        await page.locator('.tab[data-tab="store"]').click();
+
+        // Count breed tags — should equal number of live bearer species (4)
+        const breedTags = page.locator('#store-list .breed-tag');
+        await expect(breedTags).toHaveCount(4);
     });
 });
 

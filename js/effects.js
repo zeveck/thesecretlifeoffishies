@@ -7,6 +7,19 @@ import { getTank } from './tank.js';
 const boopParticles = [];
 const heartParticles = [];
 
+export function addBreedHeart(screenX, screenY) {
+    heartParticles.push({
+        x: screenX + rand(-4, 4),
+        y: screenY,
+        vy: rand(-45, -30),
+        swayPhase: rand(0, Math.PI * 2),
+        swayFreq: rand(2, 4),
+        swayAmp: rand(5, 10),
+        age: 0, maxAge: rand(1.0, 1.6),
+        size: rand(4, 6),
+    });
+}
+
 export function addBoopEffect(screenX, screenY) {
     for (let i = 0; i < 8; i++) {
         const angle = (Math.PI * 2 / 8) * i + rand(-0.3, 0.3);

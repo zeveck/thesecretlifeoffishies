@@ -39,15 +39,17 @@ let drawerOpen = false;
 let onAddFish = null; // callback
 let fishesRef = null;  // reference to fish array
 let getSaveStateRef = null; // callback to get current save state
+let getBreedTimersRef = null; // callback to get breed timer info
 let lastWaterChangeTime = 0;
 const WATER_CHANGE_COOLDOWN = 30000; // 30 seconds
 let waterChangeCooldownInterval = null;
 let cooldownToastTimer = null;
 
-export function initUI(fishes, addFishCallback, getSaveState) {
+export function initUI(fishes, addFishCallback, getSaveState, getBreedTimers) {
     fishesRef = fishes;
     onAddFish = addFishCallback;
     getSaveStateRef = getSaveState;
+    getBreedTimersRef = getBreedTimers || (() => ({}));
 
     // Menu button
     document.getElementById('menu-btn').addEventListener('click', toggleDrawer);
@@ -319,10 +321,12 @@ function refreshStore() {
         else if (!canAdd) statusText = ' (tank full)';
         else if (!canAfford) statusText = ` (need ${cost - coins} coins)`;
 
+        const breedTag = species.liveBearer ? '<span class="breed-tag">Breeds in pairs</span>' : '';
+
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
-            <div class="name">${species.name}</div>
+            <div class="name">${species.name}${breedTag}</div>
             <div class="detail">${species.sizeInches}" • Level ${species.level} • ${cost} coins${statusText}</div>
         `;
 
@@ -469,6 +473,20 @@ function refreshMyFish() {
         const fryBadge = fish.isFry ? '<span class="fry-badge">Fry</span>' : '';
         const fryGrowth = fish.isFry ? `<div class="fry-growth">Growth: ${Math.round(Math.min(fish.fryAge / 86400, 1) * 100)}%</div>` : '';
 
+        // Breed pair indicator
+        let breedInfo = '';
+        if (fish.species.liveBearer && !fish.isFry) {
+            const timers = getBreedTimersRef();
+            const entry = timers[fish.species.name];
+            if (entry && entry.pairIds && entry.pairIds.includes(fish.id)) {
+                const partner = fishesRef.find(f => f.id === entry.pairIds.find(id => id !== fish.id));
+                const partnerName = partner ? (partner.name || partner.species.name) : '?';
+                const progress = Math.min((entry.time || 0) / 3600, 1);
+                const pct = Math.round(progress * 100);
+                breedInfo = `<div class="breed-info"><span class="breed-heart">\u2665</span> Paired with ${partnerName}<div class="breed-progress-bg"><div class="breed-progress-bar" style="width:${pct}%"></div></div><span class="breed-pct">${pct}%</span></div>`;
+            }
+        }
+
         const info = document.createElement('div');
         info.className = 'fish-card-info';
         info.innerHTML = `
@@ -481,6 +499,7 @@ function refreshMyFish() {
             </div>
             <div class="fish-card-detail">${fish.currentSize.toFixed(1)}" long &bull; Swum: ${distStr}</div>
             ${fryGrowth}
+            ${breedInfo}
         `;
 
         card.appendChild(info);

@@ -5,7 +5,7 @@ import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChe
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp, getCurrentStockInches, getTankCapacity } from './store.js';
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
-import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
+import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, addBreedHeart, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
@@ -184,7 +184,8 @@ function handleTap(px, py) {
                     if (fish.species.liveBearer && !fish.isFry) {
                         const pairCount = fishes.filter(f => f.species.name === fish.species.name && !f.isFry).length;
                         if (pairCount >= 2) {
-                            breedTimers[fish.species.name] = (breedTimers[fish.species.name] || 0) + 30;
+                            const entry = getBreedEntry(fish.species.name);
+                            if (entry) entry.time += 30;
                         }
                     }
                 }
@@ -249,29 +250,93 @@ function clearFingerFollow() {
 }
 
 // --- Breeding ---
+// breedTimers: { speciesName: { time, pairIds: [id1, id2] } }
+function getBreedEntry(speciesName) {
+    let entry = breedTimers[speciesName];
+    // Migrate old format (plain number) to new format
+    if (typeof entry === 'number') {
+        entry = { time: entry, pairIds: [] };
+        breedTimers[speciesName] = entry;
+    }
+    return entry;
+}
+
+function selectPair(speciesName) {
+    const adults = fishes.filter(f => f.species.name === speciesName && !f.isFry);
+    const happy = adults.filter(f => f.happiness > 40);
+    if (happy.length < 2) return null;
+    happy.sort((a, b) => b.happiness - a.happiness);
+    return [happy[0].id, happy[1].id];
+}
+
 function updateBreeding(dt) {
     const liveBearerSpecies = SPECIES_CATALOG.filter(s => s.liveBearer);
     for (const species of liveBearerSpecies) {
-        const adults = fishes.filter(f => f.species.name === species.name && !f.isFry);
-        const happyAdults = adults.filter(f => f.happiness > 40);
-        if (happyAdults.length >= 2) {
-            breedTimers[species.name] = (breedTimers[species.name] || 0) + dt;
-        } else {
-            breedTimers[species.name] = 0;
+        let entry = getBreedEntry(species.name);
+        if (!entry) {
+            entry = { time: 0, pairIds: [] };
+            breedTimers[species.name] = entry;
         }
 
-        if (breedTimers[species.name] >= 3600) {
+        const pairIds = selectPair(species.name);
+        if (pairIds) {
+            entry.pairIds = pairIds;
+            entry.time += dt;
+        } else {
+            entry.time = 0;
+            entry.pairIds = [];
+        }
+
+        if (entry.time >= 3600) {
             const frySizeInches = species.sizeInches * 0.2;
             if (getCurrentStockInches(fishes) + frySizeInches <= getTankCapacity()) {
                 const fry = createFry(species);
                 fishes.push(fry);
                 showFryToast(species.name);
-                breedTimers[species.name] = 0;
+                entry.time = 0;
             } else {
-                breedTimers[species.name] = 600; // cap, ready when room opens
+                entry.time = 600; // cap, ready when room opens
             }
         }
     }
+}
+
+// Spawn hearts between bonded pairs when they swim near each other
+let breedHeartCooldown = 0;
+function updateBreedHearts(dt) {
+    breedHeartCooldown -= dt;
+    if (breedHeartCooldown > 0) return;
+
+    for (const speciesName in breedTimers) {
+        const entry = breedTimers[speciesName];
+        if (!entry || typeof entry === 'number' || entry.pairIds.length < 2) continue;
+        if (entry.time <= 0) continue;
+
+        const fish1 = fishes.find(f => f.id === entry.pairIds[0]);
+        const fish2 = fishes.find(f => f.id === entry.pairIds[1]);
+        if (!fish1 || !fish2) continue;
+
+        const d = dist(fish1.x, fish1.y, fish2.x, fish2.y);
+        if (d > 20) continue;
+
+        // Heart probability increases as breed timer progresses
+        const progress = Math.min(entry.time / 3600, 1);
+        const chance = 0.15 + progress * 0.35; // 15% to 50%
+        if (Math.random() > chance) continue;
+
+        // Spawn heart at midpoint between the pair
+        const mx = (fish1.x + fish2.x) / 2;
+        const my = (fish1.y + fish2.y) / 2;
+        const sx = tankLeft + (mx / 100) * tankW;
+        const sy = tankTop + (my / 100) * tankH;
+        addBreedHeart(sx, sy);
+        breedHeartCooldown = 0.8; // Minimum gap between hearts
+        break; // One heart per tick at most
+    }
+}
+
+export function getBreedTimers() {
+    return breedTimers;
 }
 
 function spawnFryEasterEgg(speciesName) {
@@ -282,7 +347,8 @@ function spawnFryEasterEgg(speciesName) {
         const fry = createFry(species);
         fishes.push(fry);
         showFryToast(species.name);
-        breedTimers[species.name] = 0;
+        const entry = getBreedEntry(speciesName);
+        if (entry) entry.time = 0;
     }
 }
 
@@ -327,6 +393,7 @@ function update(dt) {
 
     // Breeding
     updateBreeding(dt);
+    updateBreedHearts(dt);
 
     // Auto-save
     if (shouldAutoSave()) {
@@ -570,7 +637,7 @@ function init() {
     });
 
     // Init UI
-    initUI(fishes, addFishToTank, getSaveState);
+    initUI(fishes, addFishToTank, getSaveState, getBreedTimers);
 
     // Init auto-save
     initAutoSave(getSaveState);
