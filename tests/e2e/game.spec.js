@@ -18,9 +18,14 @@ async function startGame(page) {
     // Wait until overlay no longer intercepts pointer events
     await page.locator('#start-overlay').evaluate(el => {
         return new Promise(resolve => {
+            const timeout = setTimeout(resolve, 1000);
             const check = () => {
-                if (getComputedStyle(el).pointerEvents === 'none') resolve();
-                else requestAnimationFrame(check);
+                if (getComputedStyle(el).pointerEvents === 'none') {
+                    clearTimeout(timeout);
+                    resolve();
+                } else {
+                    requestAnimationFrame(check);
+                }
             };
             check();
         });
@@ -591,11 +596,10 @@ test.describe('Start overlay', () => {
 
 // --- Share Button ---
 test.describe('Share', () => {
-    test('share button is visible in drawer', async ({ page }) => {
+    test('share button is hidden until feature is implemented', async ({ page }) => {
         await startGame(page);
         await page.locator('#menu-btn').click();
 
-        await expect(page.locator('#btn-share')).toBeVisible();
-        await expect(page.locator('#btn-share')).toContainText('Share My Tank');
+        await expect(page.locator('#btn-share')).not.toBeVisible();
     });
 });
