@@ -478,6 +478,42 @@ test.describe('My Fish tab', () => {
     });
 });
 
+// --- Shadow Fish Easter Egg Tests ---
+test.describe('Shadow Fish', () => {
+    test('shadow fish module loads without errors', async ({ page }) => {
+        await startGame(page);
+        // Verify no console errors from shadowfish module
+        const errors = [];
+        page.on('pageerror', err => errors.push(err.message));
+        await page.waitForTimeout(1000);
+        const shadowErrors = errors.filter(e => e.includes('shadowfish') || e.includes('shadow'));
+        expect(shadowErrors.length).toBe(0);
+    });
+
+    test('rainbow glow is not active on startup', async ({ page }) => {
+        await startGame(page);
+        const active = await page.evaluate(() => {
+            return import('/js/shadowfish.js').then(m => m.getRainbowGlowActive());
+        });
+        expect(active).toBe(false);
+    });
+
+    test('getRainbowHue returns cycling values per fish', async ({ page }) => {
+        await startGame(page);
+        const hues = await page.evaluate(() => {
+            return import('/js/shadowfish.js').then(m => ({
+                hue1: m.getRainbowHue(0, 1),
+                hue2: m.getRainbowHue(0, 2),
+                hue3: m.getRainbowHue(1, 1),
+            }));
+        });
+        // Different fishId => different hue
+        expect(hues.hue1).not.toBe(hues.hue2);
+        // Different gameTime => different hue
+        expect(hues.hue1).not.toBe(hues.hue3);
+    });
+});
+
 // --- Canvas Tests ---
 test.describe('Canvas', () => {
     test('game canvas exists and is visible', async ({ page }) => {

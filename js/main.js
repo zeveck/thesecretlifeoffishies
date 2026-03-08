@@ -10,6 +10,7 @@ import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decoration
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings } from './audio.js';
+import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront } from './shadowfish.js';
 import { clamp, dist, rand } from './utils.js';
 
 // --- State ---
@@ -321,6 +322,9 @@ function update(dt) {
     const interacting = (Date.now() - lastInteractionTime) < 3000;
     updateSwishMeter(dt, totalHappiness, interacting);
 
+    // Shadow fish easter egg
+    updateShadowFish(dt);
+
     // Breeding
     updateBreeding(dt);
 
@@ -371,12 +375,18 @@ function render() {
         for (const f of foods) drawFoodSide(ctx, f, tankLeft, tankTop, tankW, tankH);
     }
 
+    // Shadow fish (behind)
+    drawShadowFishBehind(ctx, tankLeft, tankTop, tankW, tankH, viewAngle, gameTime);
+
     // Fish
     if (isTopDown) {
-        for (const fish of fishes) fish.drawTop(ctx, tankLeft, tankTop, tankW, tankH);
+        for (const fish of fishes) fish.drawTop(ctx, tankLeft, tankTop, tankW, tankH, gameTime);
     } else {
-        for (const fish of fishes) fish.drawSide(ctx, tankLeft, tankTop, tankW, tankH);
+        for (const fish of fishes) fish.drawSide(ctx, tankLeft, tankTop, tankW, tankH, gameTime);
     }
+
+    // Shadow fish (front — rainbow reveal)
+    drawShadowFishFront(ctx, tankLeft, tankTop, tankW, tankH, viewAngle, gameTime);
 
     // Bubbles
     if (isTopDown) {
@@ -564,6 +574,9 @@ function init() {
 
     // Init auto-save
     initAutoSave(getSaveState);
+
+    // Shadow fish easter egg
+    initShadowFish();
 
     // Desktop controls
     initDesktopControls();

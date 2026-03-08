@@ -3,6 +3,7 @@
 import { lerp, clamp, rand, dist, angleTo, lerpAngle, normalizeAngle, desaturate, adjustSaturation } from './utils.js';
 import { getFoods } from './food.js';
 import { getWaterQuality, getDecorationHappinessBonus } from './tank.js';
+import { getRainbowGlowActive, getRainbowHue } from './shadowfish.js';
 
 export const SPECIES_CATALOG = [
     { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 3.2, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
@@ -263,7 +264,7 @@ export class Fish {
 
     // --- Drawing ---
 
-    drawSide(ctx, tankLeft, tankTop, tankW, tankH) {
+    drawSide(ctx, tankLeft, tankTop, tankW, tankH, gameTime) {
         const px = this.currentSize * 20; // pixel size based on fish inches
         const sx = tankLeft + (this.x / 100) * tankW;
         const sy = tankTop + (this.y / 100) * tankH;
@@ -289,9 +290,19 @@ export class Fish {
         const tailWag = Math.sin(this.tailPhase) * 0.3;
 
         // Body color
-        const bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
-        const bellyColor = satAdj !== 0 ? adjustSaturation(this.species.belly, satAdj) : this.species.belly;
-        const finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
+        let bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
+        let bellyColor = satAdj !== 0 ? adjustSaturation(this.species.belly, satAdj) : this.species.belly;
+        let finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
+
+        // Rainbow glow override
+        if (getRainbowGlowActive() && gameTime !== undefined) {
+            const hue = getRainbowHue(gameTime, this.id);
+            bodyColor = `hsl(${hue}, 100%, 55%)`;
+            bellyColor = `hsl(${(hue + 30) % 360}, 100%, 70%)`;
+            finColor = `hsl(${(hue + 60) % 360}, 100%, 50%)`;
+            ctx.shadowColor = `hsl(${hue}, 100%, 60%)`;
+            ctx.shadowBlur = bodyH * 1.2;
+        }
 
         // Tail
         ctx.fillStyle = finColor;
@@ -348,7 +359,9 @@ export class Fish {
 
         // Neon glow stripe
         if (this.species.glowStripe) {
-            const sc = this.species.glowStripe;
+            const sc = (getRainbowGlowActive() && gameTime !== undefined)
+                ? `hsl(${(getRainbowHue(gameTime, this.id) + 90) % 360}, 100%, 65%)`
+                : this.species.glowStripe;
             const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
             const stripeL = -bodyW * 0.45;
             const stripeR = bodyW * 0.2;
@@ -442,7 +455,7 @@ export class Fish {
         ctx.restore();
     }
 
-    drawTop(ctx, tankLeft, tankTop, tankW, tankH) {
+    drawTop(ctx, tankLeft, tankTop, tankW, tankH, gameTime) {
         const px = this.currentSize * 20;
         const sx = tankLeft + (this.x / 100) * tankW;
         const sy = tankTop + (this.z / 100) * tankH;
@@ -450,8 +463,15 @@ export class Fish {
         const satAdj = this.happiness > 70 ? (this.happiness - 70) / 100
                       : this.happiness < 40 ? -(40 - this.happiness) / 60
                       : 0;
-        const bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
-        const finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
+        let bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
+        let finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
+
+        // Rainbow glow override
+        if (getRainbowGlowActive() && gameTime !== undefined) {
+            const hue = getRainbowHue(gameTime, this.id);
+            bodyColor = `hsl(${hue}, 100%, 55%)`;
+            finColor = `hsl(${(hue + 60) % 360}, 100%, 50%)`;
+        }
 
         const bodyLen = px * (this.species.aspect / 2);
         const bodyW = px * 0.3;
@@ -491,7 +511,9 @@ export class Fish {
 
         // Dorsal stripe / glow stripe
         if (this.species.glowStripe) {
-            const sc = this.species.glowStripe;
+            const sc = (getRainbowGlowActive() && gameTime !== undefined)
+                ? `hsl(${(getRainbowHue(gameTime, this.id) + 90) % 360}, 100%, 65%)`
+                : this.species.glowStripe;
             const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
             // Wide soft bloom
             ctx.save();

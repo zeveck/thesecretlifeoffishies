@@ -42,6 +42,68 @@ export function playBoopSound() {
     osc.stop(now + 0.1);
 }
 
+export function playShadowNotes() {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const vol = masterVolume * sfxVolume;
+    if (vol <= 0) return;
+
+    const now = audioCtx.currentTime;
+
+    // First low note ~58Hz (Bb1)
+    const osc1 = audioCtx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(58, now);
+    const gain1 = audioCtx.createGain();
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(vol * 0.25, now + 0.3);
+    gain1.gain.linearRampToValueAtTime(0, now + 1.2);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 1.3);
+
+    // Second low note ~62Hz (B1), 0.5s later
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(62, now + 0.5);
+    const gain2 = audioCtx.createGain();
+    gain2.gain.setValueAtTime(0, now + 0.5);
+    gain2.gain.linearRampToValueAtTime(vol * 0.25, now + 0.8);
+    gain2.gain.linearRampToValueAtTime(0, now + 1.7);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.5);
+    osc2.stop(now + 1.8);
+}
+
+export function playRevealStinger() {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const vol = masterVolume * sfxVolume;
+    if (vol <= 0) return;
+
+    const now = audioCtx.currentTime;
+    const freqs = [440, 554, 659, 880]; // A4, C#5, E5, A5
+    const types = ['sine', 'triangle', 'sine', 'triangle'];
+
+    for (let i = 0; i < freqs.length; i++) {
+        const osc = audioCtx.createOscillator();
+        osc.type = types[i];
+        osc.frequency.setValueAtTime(freqs[i] * 0.8, now);
+        osc.frequency.linearRampToValueAtTime(freqs[i], now + 0.15);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(vol * 0.2, now + 0.05);
+        gain.gain.setValueAtTime(vol * 0.2, now + 0.4);
+        gain.gain.linearRampToValueAtTime(0, now + 0.7);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.75);
+    }
+}
+
 // Getters / setters
 export function getMasterVolume() { return masterVolume; }
 export function setMasterVolume(v) { masterVolume = Math.max(0, Math.min(1, v)); }
