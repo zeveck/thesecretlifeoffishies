@@ -380,7 +380,7 @@ canvas#tank {
 
 /* Fish cards */
 .fish-card {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 10px;
     padding: 12px; margin-bottom: 10px;
     background: rgba(255,255,255,0.04); border-radius: 10px;
     cursor: pointer; transition: background 0.15s;
@@ -389,18 +389,18 @@ canvas#tank {
 .fish-portrait { flex-shrink: 0; border-radius: 8px; }
 .fish-card-info { flex: 1; min-width: 0; }
 .fish-card-name {
-    font-size: 1rem; font-weight: 600; color: #d0e4f0;
-    margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 1.05rem; font-weight: 600; color: #d0e4f0;
+    margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.fish-card-species { font-size: 0.7rem; color: #506878; margin-bottom: 6px; }
+.fish-card-species { font-size: 0.78rem; color: #607888; margin-bottom: 6px; }
 .fish-card-stats { display: flex; flex-direction: column; gap: 3px; }
 .fish-stat-bar {
-    display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: #607888;
+    display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #708898;
 }
 .fish-stat-bar span:first-child { width: 48px; flex-shrink: 0; }
 .fish-stat-bar .bar-bg { flex: 1; height: 5px; }
 .fish-stat-bar .stat-label { width: 40px; text-align: right; font-size: 0.6rem; }
-.fish-card-detail { font-size: 0.65rem; color: #506878; margin-top: 4px; }
+.fish-card-detail { font-size: 0.72rem; color: #607888; margin-top: 4px; }
 
 /* SW update banner */
 #sw-update {

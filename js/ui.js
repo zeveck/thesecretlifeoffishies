@@ -438,8 +438,8 @@ function refreshMyFish() {
 
         // Fish portrait canvas
         const canvas = document.createElement('canvas');
-        canvas.width = 120;
-        canvas.height = 60;
+        canvas.width = 80;
+        canvas.height = 48;
         canvas.className = 'fish-portrait';
         card.appendChild(canvas);
 
