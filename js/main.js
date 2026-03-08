@@ -304,7 +304,9 @@ function updateBreeding(dt) {
         if (entry.time >= 3600) {
             const frySizeInches = species.sizeInches * 0.2;
             if (getCurrentStockInches(fishes) + frySizeInches <= getTankCapacity()) {
-                const fry = createFry(species);
+                const p1 = fishes.find(f => f.id === entry.pairIds[0]);
+                const p2 = fishes.find(f => f.id === entry.pairIds[1]);
+                const fry = createFry(species, p1, p2);
                 fishes.push(fry);
                 showFryToast(species.name);
                 entry.time = 0;
@@ -358,10 +360,12 @@ function spawnFryEasterEgg(speciesName) {
     if (!species) return;
     const frySizeInches = species.sizeInches * 0.2;
     if (getCurrentStockInches(fishes) + frySizeInches <= getTankCapacity()) {
-        const fry = createFry(species);
+        const entry = getBreedEntry(speciesName);
+        const p1 = entry ? fishes.find(f => f.id === entry.pairIds[0]) : undefined;
+        const p2 = entry ? fishes.find(f => f.id === entry.pairIds[1]) : undefined;
+        const fry = createFry(species, p1, p2);
         fishes.push(fry);
         showFryToast(species.name);
-        const entry = getBreedEntry(speciesName);
         if (entry) entry.time = 0;
     }
 }

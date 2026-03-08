@@ -450,6 +450,8 @@ function refreshMyFish() {
         tempFish.happiness = fish.happiness;
         tempFish.heading = 0; tempFish.tailPhase = 0; tempFish.pitch = 0;
         tempFish.currentSize = fish.currentSize;
+        tempFish.id = fish.id;
+        tempFish.tailDots = fish.tailDots;
         const rawPx = tempFish.currentSize * 20;
         const bodyW = rawPx * (fish.species.aspect / 2);
         const bodyH = rawPx * 0.5;

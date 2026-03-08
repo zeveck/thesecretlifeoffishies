@@ -464,3 +464,74 @@ describe('Fry serialize / deserialize', () => {
         assert.strictEqual(fish.fryAge, 0);
     });
 });
+
+describe('tailDots', () => {
+    it('Guppy constructor assigns tailDots 1–20', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        for (let i = 0; i < 50; i++) {
+            const fish = new Fish(species);
+            assert.ok(fish.tailDots >= 1 && fish.tailDots <= 20,
+                `tailDots ${fish.tailDots} out of range`);
+            assert.strictEqual(fish.tailDots, Math.floor(fish.tailDots));
+        }
+    });
+
+    it('non-Guppy species have tailDots = 0', () => {
+        for (const species of SPECIES_CATALOG.filter(s => s.name !== 'Guppy')) {
+            const fish = new Fish(species);
+            assert.strictEqual(fish.tailDots, 0);
+        }
+    });
+
+    it('serializes and deserializes tailDots', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fish = new Fish(species);
+        fish.tailDots = 15;
+        const data = fish.serialize();
+        assert.strictEqual(data.tailDots, 15);
+        const restored = Fish.deserialize(data);
+        assert.strictEqual(restored.tailDots, 15);
+    });
+
+    it('assigns random tailDots 1–20 for old Guppy saves', () => {
+        const data = { speciesName: 'Guppy' };
+        const fish = Fish.deserialize(data);
+        assert.ok(fish.tailDots >= 1 && fish.tailDots <= 20);
+    });
+
+    it('fry inherits average of parents tailDots', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const parent1 = new Fish(species);
+        parent1.tailDots = 10;
+        const parent2 = new Fish(species);
+        parent2.tailDots = 16;
+        const fry = createFry(species, parent1, parent2);
+        assert.strictEqual(fry.tailDots, 13); // Math.round((10+16)/2)
+    });
+
+    it('fry inherits rounded average for odd sums', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const parent1 = new Fish(species);
+        parent1.tailDots = 7;
+        const parent2 = new Fish(species);
+        parent2.tailDots = 4;
+        const fry = createFry(species, parent1, parent2);
+        assert.strictEqual(fry.tailDots, 6); // Math.round(5.5) = 6
+    });
+
+    it('fry gets random tailDots 1–20 without parents', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fry = createFry(species);
+        assert.ok(fry.tailDots >= 1 && fry.tailDots <= 20);
+    });
+
+    it('non-Guppy fry ignores parents tailDots', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Platy');
+        const parent1 = new Fish(species);
+        parent1.tailDots = 10;
+        const parent2 = new Fish(species);
+        parent2.tailDots = 16;
+        const fry = createFry(species, parent1, parent2);
+        assert.strictEqual(fry.tailDots, 0);
+    });
+});

@@ -66,6 +66,11 @@ export class Fish {
 
         this.isFry = false;
         this.fryAge = 0;
+
+        this.tailDots = 0;
+        if (species.name === 'Guppy') {
+            this.tailDots = Math.floor(Math.random() * 20) + 1; // 1–20
+        }
     }
 
     update(dt) {
@@ -343,6 +348,33 @@ export class Fish {
         }
         ctx.fill();
 
+        // Tail dots (Guppy) — clipped to actual tail shape
+        if (this.tailDots > 0 && this.species.tailStyle === 'fan') {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(-bodyW * 0.6, 0);
+            ctx.bezierCurveTo(-bodyW * 1.1, -bodyH * 1.4 + tailWag * bodyH,
+                              -bodyW * 1.8, -bodyH * 1.1 + tailWag * bodyH,
+                              -bodyW * 1.5, 0 + tailWag * bodyH * 0.5);
+            ctx.bezierCurveTo(-bodyW * 1.8, bodyH * 1.1 + tailWag * bodyH,
+                              -bodyW * 1.1, bodyH * 1.4 + tailWag * bodyH,
+                              -bodyW * 0.6, 0);
+            ctx.clip();
+            const dotR = Math.max(1.5, bodyH * 0.15);
+            ctx.fillStyle = bodyColor;
+            for (let i = 0; i < this.tailDots; i++) {
+                const seed = (this.id * 31 + i * 97) & 0xFFFF;
+                const nx = ((seed * 13) % 1000) / 1000;
+                const ny = ((seed * 37 + 521) % 1000) / 1000;
+                const dx = -bodyW * (0.65 + nx * 0.95);
+                const dy = (ny - 0.5) * bodyH * 2.6 + tailWag * bodyH * nx;
+                ctx.beginPath();
+                ctx.arc(dx, dy, dotR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         // Body (ellipse)
         ctx.fillStyle = bodyColor;
         ctx.beginPath();
@@ -497,6 +529,33 @@ export class Fish {
                           0, bodyLen * 0.6);
         ctx.fill();
 
+        // Tail dots (Guppy) — clipped to actual tail shape (top view)
+        if (this.tailDots > 0 && this.species.tailStyle === 'fan') {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(0, bodyLen * 0.6);
+            ctx.bezierCurveTo(-bodyW * 1.2 + tailWag * bodyW * 2, bodyLen * 1.0,
+                              -bodyW * 0.8 + tailWag * bodyW * 2, bodyLen * 1.3,
+                              tailWag * bodyW, bodyLen * 1.1);
+            ctx.bezierCurveTo(bodyW * 0.8 + tailWag * bodyW * 2, bodyLen * 1.3,
+                              bodyW * 1.2 + tailWag * bodyW * 2, bodyLen * 1.0,
+                              0, bodyLen * 0.6);
+            ctx.clip();
+            const dotR = Math.max(1.5, bodyW * 0.2);
+            ctx.fillStyle = bodyColor;
+            for (let i = 0; i < this.tailDots; i++) {
+                const seed = (this.id * 31 + i * 97) & 0xFFFF;
+                const nx = ((seed * 13) % 1000) / 1000;
+                const ny = ((seed * 37 + 521) % 1000) / 1000;
+                const dx = (ny - 0.5) * bodyW * 2.8 + tailWag * bodyW * nx * 2;
+                const dy = bodyLen * (0.6 + nx * 0.65);
+                ctx.beginPath();
+                ctx.arc(dx, dy, dotR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         // Body — teardrop/leaf
         ctx.fillStyle = bodyColor;
         ctx.beginPath();
@@ -617,6 +676,7 @@ export class Fish {
             xp: this.xp,
             isFry: this.isFry,
             fryAge: this.fryAge,
+            tailDots: this.tailDots,
         };
     }
 
@@ -635,6 +695,7 @@ export class Fish {
         f.xp = data.xp ?? 0;
         f.isFry = data.isFry ?? false;
         f.fryAge = data.fryAge ?? 0;
+        f.tailDots = data.tailDots ?? (species.name === 'Guppy' ? Math.floor(Math.random() * 20) + 1 : 0);
         if (f.isFry) {
             const t = Math.min(f.fryAge / 86400, 1);
             f.currentSize = lerp(f.maxSize * 0.2, f.maxSize * 0.6, t);
@@ -647,10 +708,13 @@ export class Fish {
     }
 }
 
-export function createFry(species) {
+export function createFry(species, parent1, parent2) {
     const fry = new Fish(species, undefined, undefined, undefined, `${species.name} Fry`);
     fry.isFry = true;
     fry.fryAge = 0;
     fry.currentSize = species.sizeInches * 0.2;
+    if (parent1 && parent2 && species.name === 'Guppy') {
+        fry.tailDots = Math.round((parent1.tailDots + parent2.tailDots) / 2);
+    }
     return fry;
 }
