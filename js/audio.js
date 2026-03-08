@@ -119,7 +119,24 @@ export function playRevealStinger() {
 
 function applyMusicVolume() {
     if (!musicAudio) return;
-    musicAudio.volume = musicMuted ? 0 : masterVolume * musicVolume;
+    const effectiveVolume = musicMuted ? 0 : masterVolume * musicVolume;
+    musicAudio.volume = effectiveVolume;
+    if (musicAudio.paused && effectiveVolume > 0) {
+        musicAudio.play().catch(() => {
+            document.addEventListener('click', resumeOnInteraction);
+            document.addEventListener('touchstart', resumeOnInteraction);
+            document.addEventListener('keydown', resumeOnInteraction);
+        });
+    }
+}
+
+function resumeOnInteraction() {
+    if (musicAudio && musicAudio.paused && !musicMuted && masterVolume * musicVolume > 0) {
+        musicAudio.play().catch(() => {});
+    }
+    document.removeEventListener('click', resumeOnInteraction);
+    document.removeEventListener('touchstart', resumeOnInteraction);
+    document.removeEventListener('keydown', resumeOnInteraction);
 }
 
 function playTrack(index) {
@@ -131,8 +148,12 @@ function playTrack(index) {
         currentTrack = index % MUSIC_TRACKS.length;
         musicAudio = new Audio(MUSIC_TRACKS[currentTrack]);
         musicAudio.addEventListener('ended', onTrackEnded);
-        applyMusicVolume();
-        musicAudio.play().catch(() => { /* autoplay blocked */ });
+        musicAudio.volume = musicMuted ? 0 : masterVolume * musicVolume;
+        musicAudio.play().catch(() => {
+            document.addEventListener('click', resumeOnInteraction);
+            document.addEventListener('touchstart', resumeOnInteraction);
+            document.addEventListener('keydown', resumeOnInteraction);
+        });
     } catch (e) {
         // Audio not supported in this environment
     }
@@ -175,7 +196,10 @@ export function loadAudioSettings(settings) {
     if (settings.masterVolume !== undefined) setMasterVolume(settings.masterVolume);
     if (settings.sfxVolume !== undefined) setSfxVolume(settings.sfxVolume);
     if (settings.musicVolume !== undefined) setMusicVolume(settings.musicVolume);
-    if (settings.musicMuted !== undefined) musicMuted = settings.musicMuted;
+    if (settings.musicMuted !== undefined) {
+        musicMuted = settings.musicMuted;
+        applyMusicVolume();
+    }
 }
 
 export function saveAudioSettings() {
