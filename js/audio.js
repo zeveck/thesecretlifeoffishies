@@ -50,31 +50,31 @@ export function playShadowNotes() {
 
     const now = audioCtx.currentTime;
 
-    // First low note ~58Hz (Bb1)
+    // First ominous note ~110Hz (A2) — audible on all speakers
     const osc1 = audioCtx.createOscillator();
     osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(58, now);
+    osc1.frequency.setValueAtTime(110, now);
     const gain1 = audioCtx.createGain();
     gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(vol * 0.25, now + 0.3);
-    gain1.gain.linearRampToValueAtTime(0, now + 1.2);
+    gain1.gain.linearRampToValueAtTime(vol * 0.35, now + 0.25);
+    gain1.gain.linearRampToValueAtTime(0, now + 1.4);
     osc1.connect(gain1);
     gain1.connect(audioCtx.destination);
     osc1.start(now);
-    osc1.stop(now + 1.3);
+    osc1.stop(now + 1.5);
 
-    // Second low note ~62Hz (B1), 0.5s later
+    // Second note ~117Hz (Bb2), 0.5s later — half-step up for tension
     const osc2 = audioCtx.createOscillator();
     osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(62, now + 0.5);
+    osc2.frequency.setValueAtTime(117, now + 0.5);
     const gain2 = audioCtx.createGain();
     gain2.gain.setValueAtTime(0, now + 0.5);
-    gain2.gain.linearRampToValueAtTime(vol * 0.25, now + 0.8);
-    gain2.gain.linearRampToValueAtTime(0, now + 1.7);
+    gain2.gain.linearRampToValueAtTime(vol * 0.35, now + 0.75);
+    gain2.gain.linearRampToValueAtTime(0, now + 1.9);
     osc2.connect(gain2);
     gain2.connect(audioCtx.destination);
     osc2.start(now + 0.5);
-    osc2.stop(now + 1.8);
+    osc2.stop(now + 2.0);
 }
 
 export function playRevealStinger() {

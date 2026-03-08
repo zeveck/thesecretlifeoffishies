@@ -3,14 +3,14 @@
 import { Fish, SPECIES_CATALOG, createFry } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry, moveDecoration } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp, getCurrentStockInches, getTankCapacity } from './store.js';
+import { getProgression, addXP, addCoins, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp, getCurrentStockInches, getTankCapacity } from './store.js';
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, addBreedHeart, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings } from './audio.js';
-import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront } from './shadowfish.js';
+import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront, getRainbowGlowActive } from './shadowfish.js';
 import { clamp, dist, rand } from './utils.js';
 
 // --- State ---
@@ -22,6 +22,7 @@ let lastTime = 0;
 let breedTimers = {};
 // Easter egg: track rapid boops between same-species live bearers
 let easterEggBoops = {}; // { speciesName: { count, firstBoopTime } }
+let rainbowBonusApplied = false;
 
 // Tank display bounds (in pixels)
 let tankLeft, tankTop, tankW, tankH;
@@ -390,6 +391,20 @@ function update(dt) {
 
     // Shadow fish easter egg
     updateShadowFish(dt);
+
+    // Rainbow bonus: one-time reward when rainbow glow activates
+    if (getRainbowGlowActive() && !rainbowBonusApplied) {
+        rainbowBonusApplied = true;
+        // Max happiness, full strength, sate hunger for all fish
+        for (const fish of fishes) {
+            fish.happiness = 100;
+            fish.strength = 100;
+            fish.hunger = clamp(fish.hunger - 40, 0, 100);
+        }
+        // Bonus rewards
+        addCoins(25);
+        addXP(50);
+    }
 
     // Breeding
     updateBreeding(dt);

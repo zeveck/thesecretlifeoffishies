@@ -15,8 +15,16 @@ async function startGame(page) {
     await expect(page.locator('#start-overlay')).toHaveClass(/hidden/, { timeout: 10000 });
     // Wait for the HUD to be rendered (indicates game init completed)
     await expect(page.locator('#hud')).toBeVisible({ timeout: 10000 });
-    // Allow overlay fade transition to fully complete
-    await page.waitForTimeout(600);
+    // Wait until overlay no longer intercepts pointer events
+    await page.locator('#start-overlay').evaluate(el => {
+        return new Promise(resolve => {
+            const check = () => {
+                if (getComputedStyle(el).pointerEvents === 'none') resolve();
+                else requestAnimationFrame(check);
+            };
+            check();
+        });
+    });
 }
 
 // --- Drawer Tests ---

@@ -8,11 +8,11 @@ import { playShadowNotes, playRevealStinger } from './audio.js';
 const INTERVAL = 60; // seconds between appearances
 const SWIM_DURATION = 4.5; // seconds to cross screen
 const STAGES = [
-    { opacity: 0.05, scale: 1.8 },
-    { opacity: 0.12, scale: 2.2 },
-    { opacity: 0.20, scale: 2.7 },
+    { opacity: 0.10, scale: 1.8 },
+    { opacity: 0.15, scale: 2.2 },
+    { opacity: 0.22, scale: 2.7 },
     { opacity: 0.35, scale: 3.5 },
-    { opacity: 1.0,  scale: 4.0 }, // rainbow reveal
+    { opacity: 1.0,  scale: 1.0 }, // rainbow reveal — scale is relative to tank, not baseSize
 ];
 
 // --- State ---
@@ -39,18 +39,20 @@ export function initShadowFish() {
 }
 
 export function updateShadowFish(dt) {
-    if (rainbowGlowActive) return;
+    // Stop spawning new appearances once rainbow is done, but keep animating current swim
+    if (rainbowGlowActive && swimProgress < 0) return;
 
     elapsedTime += dt;
 
     if (swimProgress >= 0) {
         // Advancing a swim
         swimProgress += dt / SWIM_DURATION;
+        // Activate rainbow glow as soon as the reveal fish reaches center
+        if (appearanceCount >= 5 && !rainbowGlowActive && swimProgress >= 0.4) {
+            rainbowGlowActive = true;
+        }
         if (swimProgress >= 1) {
             swimProgress = -1;
-            if (appearanceCount >= 5) {
-                rainbowGlowActive = true;
-            }
         }
     } else {
         // Check if it's time for the next appearance
@@ -97,7 +99,8 @@ function drawShadowFishShape(ctx, tankLeft, tankTop, tankW, tankH, viewAngle, ga
     const isRainbow = stageIdx === 4;
     const isTopDown = viewAngle > 0.9;
     const baseSize = 30; // base fish size in pixels
-    const fishSize = baseSize * stage.scale;
+    // Rainbow fish is massive — sized to occlude the tank
+    const fishSize = isRainbow ? Math.max(tankW, tankH) * 0.45 : baseSize * stage.scale;
 
     // X position: swim across with easing
     const eased = easeInOutCubic(swimProgress);
