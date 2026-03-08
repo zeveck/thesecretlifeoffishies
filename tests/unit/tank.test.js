@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
 import {
     getTank, hasDecoration, addDecoration, moveDecoration,
     getDecorationHappinessBonus, doWaterChange, getWaterQuality,
@@ -6,6 +7,12 @@ import {
     setTankSize, applyOfflineChemistry, resetChemAccum,
     DECORATIONS, CARE_ITEMS,
 } from '../../js/tank.js';
+
+function assertCloseTo(actual, expected, precision = 5) {
+    const eps = Math.pow(10, -precision) / 2;
+    assert.ok(Math.abs(actual - expected) < eps,
+        `Expected ${actual} to be close to ${expected}`);
+}
 
 // Reset tank state before each test by loading a clean state
 beforeEach(() => {
@@ -25,48 +32,48 @@ beforeEach(() => {
 
 describe('DECORATIONS catalog', () => {
     it('has 7 decorations', () => {
-        expect(DECORATIONS).toHaveLength(7);
+        assert.strictEqual(DECORATIONS.length, 7);
     });
 
     it('each decoration has required fields', () => {
         for (const d of DECORATIONS) {
-            expect(d).toHaveProperty('id');
-            expect(d).toHaveProperty('name');
-            expect(d).toHaveProperty('cost');
-            expect(d).toHaveProperty('color');
-            expect(d).toHaveProperty('desc');
-            expect(d).toHaveProperty('effect');
-            expect(typeof d.cost).toBe('number');
-            expect(d.cost).toBeGreaterThan(0);
+            assert.ok('id' in d);
+            assert.ok('name' in d);
+            assert.ok('cost' in d);
+            assert.ok('color' in d);
+            assert.ok('desc' in d);
+            assert.ok('effect' in d);
+            assert.strictEqual(typeof d.cost, 'number');
+            assert.ok(d.cost > 0);
         }
     });
 
     it('all decoration IDs are unique', () => {
         const ids = DECORATIONS.map(d => d.id);
-        expect(new Set(ids).size).toBe(ids.length);
+        assert.strictEqual(new Set(ids).size, ids.length);
     });
 });
 
 describe('CARE_ITEMS catalog', () => {
     it('has 2 care items', () => {
-        expect(CARE_ITEMS).toHaveLength(2);
+        assert.strictEqual(CARE_ITEMS.length, 2);
     });
 
     it('includes conditioner and algae_scrub', () => {
         const ids = CARE_ITEMS.map(i => i.id);
-        expect(ids).toContain('conditioner');
-        expect(ids).toContain('algae_scrub');
+        assert.ok(ids.includes('conditioner'));
+        assert.ok(ids.includes('algae_scrub'));
     });
 });
 
 describe('hasDecoration', () => {
     it('returns false for un-owned decoration', () => {
-        expect(hasDecoration('castle')).toBe(false);
+        assert.strictEqual(hasDecoration('castle'), false);
     });
 
     it('returns true after adding decoration', () => {
         addDecoration('castle');
-        expect(hasDecoration('castle')).toBe(true);
+        assert.strictEqual(hasDecoration('castle'), true);
     });
 });
 
@@ -74,23 +81,23 @@ describe('addDecoration', () => {
     it('adds a decoration to the tank', () => {
         addDecoration('castle');
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(1);
-        expect(tank.decorations[0].id).toBe('castle');
+        assert.strictEqual(tank.decorations.length, 1);
+        assert.strictEqual(tank.decorations[0].id, 'castle');
     });
 
     it('does not add duplicate decorations', () => {
         addDecoration('castle');
         addDecoration('castle');
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(1);
+        assert.strictEqual(tank.decorations.length, 1);
     });
 
     it('stores decoration with default position', () => {
         addDecoration('castle');
         const tank = getTank();
         const deco = tank.decorations[0];
-        expect(deco.x).toBe(78); // DEFAULT_POSITIONS.castle.x
-        expect(deco.y).toBe(88); // DEFAULT_POSITIONS.castle.y
+        assert.strictEqual(deco.x, 78); // DEFAULT_POSITIONS.castle.x
+        assert.strictEqual(deco.y, 88); // DEFAULT_POSITIONS.castle.y
     });
 
     it('can add multiple different decorations', () => {
@@ -98,7 +105,7 @@ describe('addDecoration', () => {
         addDecoration('coral');
         addDecoration('java_fern');
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(3);
+        assert.strictEqual(tank.decorations.length, 3);
     });
 });
 
@@ -107,48 +114,48 @@ describe('moveDecoration', () => {
         addDecoration('castle');
         moveDecoration(0, 30, 40);
         const tank = getTank();
-        expect(tank.decorations[0].x).toBe(30);
-        expect(tank.decorations[0].y).toBe(40);
+        assert.strictEqual(tank.decorations[0].x, 30);
+        assert.strictEqual(tank.decorations[0].y, 40);
     });
 
     it('does nothing for invalid index (negative)', () => {
         addDecoration('castle');
         moveDecoration(-1, 30, 40);
         const tank = getTank();
-        expect(tank.decorations[0].x).toBe(78); // unchanged
+        assert.strictEqual(tank.decorations[0].x, 78); // unchanged
     });
 
     it('does nothing for invalid index (out of range)', () => {
         addDecoration('castle');
         moveDecoration(5, 30, 40);
         const tank = getTank();
-        expect(tank.decorations[0].x).toBe(78); // unchanged
+        assert.strictEqual(tank.decorations[0].x, 78); // unchanged
     });
 });
 
 describe('getDecorationHappinessBonus', () => {
     it('returns 0 with no decorations', () => {
-        expect(getDecorationHappinessBonus()).toBe(0);
+        assert.strictEqual(getDecorationHappinessBonus(), 0);
     });
 
     it('returns 5 for castle', () => {
         addDecoration('castle');
-        expect(getDecorationHappinessBonus()).toBe(5);
+        assert.strictEqual(getDecorationHappinessBonus(), 5);
     });
 
     it('returns 3 for coral', () => {
         addDecoration('coral');
-        expect(getDecorationHappinessBonus()).toBe(3);
+        assert.strictEqual(getDecorationHappinessBonus(), 3);
     });
 
     it('returns 4 for led_lights', () => {
         addDecoration('led_lights');
-        expect(getDecorationHappinessBonus()).toBe(4);
+        assert.strictEqual(getDecorationHappinessBonus(), 4);
     });
 
     it('returns 3 for treasure_chest', () => {
         addDecoration('treasure_chest');
-        expect(getDecorationHappinessBonus()).toBe(3);
+        assert.strictEqual(getDecorationHappinessBonus(), 3);
     });
 
     it('sums bonuses for multiple happiness decorations', () => {
@@ -156,14 +163,14 @@ describe('getDecorationHappinessBonus', () => {
         addDecoration('coral');       // +3
         addDecoration('led_lights');  // +4
         addDecoration('treasure_chest'); // +3
-        expect(getDecorationHappinessBonus()).toBe(15);
+        assert.strictEqual(getDecorationHappinessBonus(), 15);
     });
 
     it('returns 0 for non-happiness decorations only', () => {
         addDecoration('java_fern');
         addDecoration('driftwood');
         addDecoration('rock_arch');
-        expect(getDecorationHappinessBonus()).toBe(0);
+        assert.strictEqual(getDecorationHappinessBonus(), 0);
     });
 });
 
@@ -171,57 +178,57 @@ describe('doWaterChange', () => {
     it('reduces ammonia by 60%', () => {
         loadTankState({ ammonia: 50, nitrite: 0, nitrate: 0, bacteria: 10, algae: 0, decorations: [] });
         doWaterChange();
-        expect(getTank().ammonia).toBeCloseTo(20);
+        assertCloseTo(getTank().ammonia, 20);
     });
 
     it('reduces nitrite by 50%', () => {
         loadTankState({ ammonia: 0, nitrite: 40, nitrate: 0, bacteria: 10, algae: 0, decorations: [] });
         doWaterChange();
-        expect(getTank().nitrite).toBeCloseTo(20);
+        assertCloseTo(getTank().nitrite, 20);
     });
 
     it('reduces nitrate by 50%', () => {
         loadTankState({ ammonia: 0, nitrite: 0, nitrate: 60, bacteria: 10, algae: 0, decorations: [] });
         doWaterChange();
-        expect(getTank().nitrate).toBeCloseTo(30);
+        assertCloseTo(getTank().nitrate, 30);
     });
 
     it('reduces bacteria by 15%', () => {
         loadTankState({ ammonia: 0, nitrite: 0, nitrate: 0, bacteria: 100, algae: 0, decorations: [] });
         doWaterChange();
-        expect(getTank().bacteria).toBeCloseTo(85);
+        assertCloseTo(getTank().bacteria, 85);
     });
 
     it('reduces algae by 50%', () => {
         loadTankState({ ammonia: 0, nitrite: 0, nitrate: 0, bacteria: 10, algae: 80, decorations: [] });
         doWaterChange();
-        expect(getTank().algae).toBeCloseTo(40);
+        assertCloseTo(getTank().algae, 40);
     });
 });
 
 describe('getWaterQuality', () => {
     it('returns 1 for perfect water (no toxins)', () => {
-        expect(getWaterQuality()).toBe(1);
+        assert.strictEqual(getWaterQuality(), 1);
     });
 
     it('returns 0.5 when ammonia is 50', () => {
         loadTankState({ ammonia: 50, nitrite: 0, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
-        expect(getWaterQuality()).toBeCloseTo(0.5);
+        assertCloseTo(getWaterQuality(), 0.5);
     });
 
     it('uses the worse of ammonia and nitrite', () => {
         loadTankState({ ammonia: 20, nitrite: 80, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
-        expect(getWaterQuality()).toBeCloseTo(0.2);
+        assertCloseTo(getWaterQuality(), 0.2);
     });
 
     it('returns 0 when ammonia is 100', () => {
         loadTankState({ ammonia: 100, nitrite: 0, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
-        expect(getWaterQuality()).toBe(0);
+        assert.strictEqual(getWaterQuality(), 0);
     });
 
     it('clamps to 0-1 range', () => {
         loadTankState({ ammonia: 150, nitrite: 0, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
-        expect(getWaterQuality()).toBe(0);
+        assert.strictEqual(getWaterQuality(), 0);
     });
 });
 
@@ -232,7 +239,7 @@ describe('updateChemistry', () => {
         updateChemistry(1, 10, 5);
         const tank = getTank();
         // Ammonia = 10 * 0.0015 + 5 * 0.005 = 0.015 + 0.025 = 0.04
-        expect(tank.ammonia).toBeCloseTo(0.04);
+        assertCloseTo(tank.ammonia, 0.04);
     });
 
     it('bacteria converts ammonia to nitrite', () => {
@@ -244,8 +251,8 @@ describe('updateChemistry', () => {
         // nitrite goes from 0 to 0.2 * 0.75 = 0.15, but then nitrite->nitrate
         // conversion also runs in same tick: nitriteConverted = min(0.15, 50*0.003) = 0.15
         // so nitrite ends at 0, nitrate = 0.15 * 0.67 = 0.1005
-        expect(tank.ammonia).toBeCloseTo(9.8);
-        expect(tank.nitrate).toBeCloseTo(0.1005, 3);
+        assertCloseTo(tank.ammonia, 9.8);
+        assertCloseTo(tank.nitrate, 0.1005, 3);
     });
 
     it('bacteria converts nitrite to nitrate', () => {
@@ -255,8 +262,8 @@ describe('updateChemistry', () => {
         // nitriteConverted = min(10, 50 * 0.003) = 0.15
         // nitrite = 10 - 0.15 = 9.85
         // nitrate = 0 + 0.15 * 0.67 = 0.1005
-        expect(tank.nitrite).toBeCloseTo(9.85);
-        expect(tank.nitrate).toBeCloseTo(0.1005, 3);
+        assertCloseTo(tank.nitrite, 9.85);
+        assertCloseTo(tank.nitrate, 0.1005, 3);
     });
 
     it('does not tick chemistry for dt < 1', () => {
@@ -265,7 +272,7 @@ describe('updateChemistry', () => {
         updateChemistry(0.5, 10, 5);
         // chemAccum is reset in beforeEach, so 0.5 < 1 means no tick occurs
         const tank = getTank();
-        expect(tank.ammonia).toBe(ammoniaBefore);
+        assert.strictEqual(tank.ammonia, ammoniaBefore);
     });
 
     it('clamps all values to 0-100', () => {
@@ -274,11 +281,11 @@ describe('updateChemistry', () => {
         loadTankState({ ammonia: 100, nitrite: 100, nitrate: 100, bacteria: 100, algae: 100, decorations: [] });
         updateChemistry(1, 1000, 1000);
         const tank = getTank();
-        expect(tank.ammonia).toBe(100);
-        expect(tank.nitrite).toBe(100);
-        expect(tank.nitrate).toBe(100);
-        expect(tank.bacteria).toBe(100);
-        expect(tank.algae).toBe(100);
+        assert.strictEqual(tank.ammonia, 100);
+        assert.strictEqual(tank.nitrite, 100);
+        assert.strictEqual(tank.nitrate, 100);
+        assert.strictEqual(tank.bacteria, 100);
+        assert.strictEqual(tank.algae, 100);
     });
 
     it('java_fern halves algae growth rate', () => {
@@ -293,7 +300,7 @@ describe('updateChemistry', () => {
         updateChemistry(1, 0, 0);
         const algaeWith = getTank().algae;
 
-        expect(algaeWith).toBeLessThan(algaeWithout);
+        assert.ok(algaeWith < algaeWithout);
     });
 
     it('coral reduces nitrate', () => {
@@ -302,7 +309,7 @@ describe('updateChemistry', () => {
         updateChemistry(1, 0, 0);
         const tank = getTank();
         // Coral multiplies nitrate by 0.998 each tick
-        expect(tank.nitrate).toBeLessThan(50);
+        assert.ok(tank.nitrate < 50);
     });
 
     it('driftwood boosts bacteria growth', () => {
@@ -315,7 +322,7 @@ describe('updateChemistry', () => {
         updateChemistry(1, 0, 0);
         const bacteriaWith = getTank().bacteria;
 
-        expect(bacteriaWith).toBeGreaterThan(bacteriaWithout);
+        assert.ok(bacteriaWith > bacteriaWithout);
     });
 });
 
@@ -324,20 +331,20 @@ describe('useCareItem', () => {
         loadTankState({ ammonia: 40, nitrite: 30, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
         useCareItem('conditioner');
         const tank = getTank();
-        expect(tank.ammonia).toBeCloseTo(20);
+        assertCloseTo(tank.ammonia, 20);
     });
 
     it('conditioner halves nitrite', () => {
         loadTankState({ ammonia: 40, nitrite: 30, nitrate: 0, bacteria: 5, algae: 0, decorations: [] });
         useCareItem('conditioner');
         const tank = getTank();
-        expect(tank.nitrite).toBeCloseTo(15);
+        assertCloseTo(tank.nitrite, 15);
     });
 
     it('algae_scrub halves algae', () => {
         loadTankState({ ammonia: 0, nitrite: 0, nitrate: 0, bacteria: 5, algae: 60, decorations: [] });
         useCareItem('algae_scrub');
-        expect(getTank().algae).toBeCloseTo(30);
+        assertCloseTo(getTank().algae, 30);
     });
 });
 
@@ -345,8 +352,8 @@ describe('setTankSize', () => {
     it('sets tank gallons and capacity', () => {
         setTankSize(40, 20);
         const tank = getTank();
-        expect(tank.gallons).toBe(40);
-        expect(tank.capacityInches).toBe(20);
+        assert.strictEqual(tank.gallons, 40);
+        assert.strictEqual(tank.capacityInches, 20);
     });
 });
 
@@ -360,30 +367,30 @@ describe('saveTankState / loadTankState', () => {
         });
 
         const saved = saveTankState();
-        expect(saved.ammonia).toBe(10);
-        expect(saved.nitrite).toBe(20);
-        expect(saved.nitrate).toBe(30);
-        expect(saved.bacteria).toBe(40);
-        expect(saved.algae).toBe(50);
-        expect(saved.freeFeed).toBe(true);
-        expect(saved.gallons).toBe(75);
-        expect(saved.capacityInches).toBe(35);
-        expect(saved.decorations).toHaveLength(1);
-        expect(saved.decorations[0].id).toBe('castle');
+        assert.strictEqual(saved.ammonia, 10);
+        assert.strictEqual(saved.nitrite, 20);
+        assert.strictEqual(saved.nitrate, 30);
+        assert.strictEqual(saved.bacteria, 40);
+        assert.strictEqual(saved.algae, 50);
+        assert.strictEqual(saved.freeFeed, true);
+        assert.strictEqual(saved.gallons, 75);
+        assert.strictEqual(saved.capacityInches, 35);
+        assert.strictEqual(saved.decorations.length, 1);
+        assert.strictEqual(saved.decorations[0].id, 'castle');
     });
 
     it('uses defaults for missing fields', () => {
         loadTankState({});
         const tank = getTank();
-        expect(tank.ammonia).toBe(0);
-        expect(tank.nitrite).toBe(0);
-        expect(tank.nitrate).toBe(0);
-        expect(tank.bacteria).toBe(5);
-        expect(tank.algae).toBe(0);
-        expect(tank.freeFeed).toBe(false);
-        expect(tank.gallons).toBe(10);
-        expect(tank.capacityInches).toBe(5);
-        expect(tank.decorations).toEqual([]);
+        assert.strictEqual(tank.ammonia, 0);
+        assert.strictEqual(tank.nitrite, 0);
+        assert.strictEqual(tank.nitrate, 0);
+        assert.strictEqual(tank.bacteria, 5);
+        assert.strictEqual(tank.algae, 0);
+        assert.strictEqual(tank.freeFeed, false);
+        assert.strictEqual(tank.gallons, 10);
+        assert.strictEqual(tank.capacityInches, 5);
+        assert.deepStrictEqual(tank.decorations, []);
     });
 
     it('does nothing when passed null', () => {
@@ -392,7 +399,7 @@ describe('saveTankState / loadTankState', () => {
         // Tank should remain unchanged (we called loadTankState with our beforeEach state,
         // then null does nothing)
         const after = saveTankState();
-        expect(after.ammonia).toBe(before.ammonia);
+        assert.strictEqual(after.ammonia, before.ammonia);
     });
 });
 
@@ -405,22 +412,22 @@ describe('loadTankState — migration of old string[] decorations to object[]', 
         });
 
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(3);
+        assert.strictEqual(tank.decorations.length, 3);
 
         // All should be objects with id, x, y
         for (const d of tank.decorations) {
-            expect(d).toHaveProperty('id');
-            expect(d).toHaveProperty('x');
-            expect(d).toHaveProperty('y');
-            expect(typeof d.id).toBe('string');
-            expect(typeof d.x).toBe('number');
-            expect(typeof d.y).toBe('number');
+            assert.ok('id' in d);
+            assert.ok('x' in d);
+            assert.ok('y' in d);
+            assert.strictEqual(typeof d.id, 'string');
+            assert.strictEqual(typeof d.x, 'number');
+            assert.strictEqual(typeof d.y, 'number');
         }
 
         // Castle should have its default position
         const castle = tank.decorations.find(d => d.id === 'castle');
-        expect(castle.x).toBe(78);
-        expect(castle.y).toBe(88);
+        assert.strictEqual(castle.x, 78);
+        assert.strictEqual(castle.y, 88);
     });
 
     it('preserves object format decorations as-is', () => {
@@ -435,9 +442,9 @@ describe('loadTankState — migration of old string[] decorations to object[]', 
         });
 
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(2);
-        expect(tank.decorations[0].x).toBe(30);
-        expect(tank.decorations[0].y).toBe(40);
+        assert.strictEqual(tank.decorations.length, 2);
+        assert.strictEqual(tank.decorations[0].x, 30);
+        assert.strictEqual(tank.decorations[0].y, 40);
     });
 
     it('handles empty decorations array', () => {
@@ -446,7 +453,7 @@ describe('loadTankState — migration of old string[] decorations to object[]', 
             bacteria: 5, algae: 0,
             decorations: [],
         });
-        expect(getTank().decorations).toEqual([]);
+        assert.deepStrictEqual(getTank().decorations, []);
     });
 
     it('handles unknown decoration id in migration with fallback position', () => {
@@ -457,11 +464,11 @@ describe('loadTankState — migration of old string[] decorations to object[]', 
         });
 
         const tank = getTank();
-        expect(tank.decorations).toHaveLength(1);
-        expect(tank.decorations[0].id).toBe('unknown_deco');
+        assert.strictEqual(tank.decorations.length, 1);
+        assert.strictEqual(tank.decorations[0].id, 'unknown_deco');
         // Fallback position is { x: 50, y: 90 }
-        expect(tank.decorations[0].x).toBe(50);
-        expect(tank.decorations[0].y).toBe(90);
+        assert.strictEqual(tank.decorations[0].x, 50);
+        assert.strictEqual(tank.decorations[0].y, 90);
     });
 });
 
@@ -474,7 +481,7 @@ describe('applyOfflineChemistry', () => {
         // After 10 ticks with 5 fish inches and 0 uneaten food:
         // Each tick adds 5 * 0.0015 = 0.0075, with 0 bacteria no conversion occurs
         // Total ammonia = 10 * 0.0075 = 0.075
-        expect(tank.ammonia).toBeCloseTo(0.075);
+        assertCloseTo(tank.ammonia, 0.075, 3);
     });
 
     it('caps at 86400 seconds (24 hours)', () => {
@@ -483,7 +490,7 @@ describe('applyOfflineChemistry', () => {
         applyOfflineChemistry(200000, 1);
         const tank = getTank();
         // Just verify it doesn't crash and values are clamped
-        expect(tank.ammonia).toBeLessThanOrEqual(100);
-        expect(tank.bacteria).toBeLessThanOrEqual(100);
+        assert.ok(tank.ammonia <= 100);
+        assert.ok(tank.bacteria <= 100);
     });
 });

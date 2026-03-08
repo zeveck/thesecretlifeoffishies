@@ -1,6 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
 import { Fish, SPECIES_CATALOG, createFry } from '../../js/fish.js';
 import { loadTankState } from '../../js/tank.js';
+
+function assertCloseTo(actual, expected, precision = 5) {
+    const eps = Math.pow(10, -precision) / 2;
+    assert.ok(Math.abs(actual - expected) < eps,
+        `Expected ${actual} to be close to ${expected}`);
+}
 
 beforeEach(() => {
     loadTankState({
@@ -13,73 +20,73 @@ beforeEach(() => {
 
 describe('SPECIES_CATALOG', () => {
     it('has 14 species', () => {
-        expect(SPECIES_CATALOG).toHaveLength(14);
+        assert.strictEqual(SPECIES_CATALOG.length, 14);
     });
 
     it('all species have required fields', () => {
         for (const s of SPECIES_CATALOG) {
-            expect(s).toHaveProperty('name');
-            expect(s).toHaveProperty('sizeInches');
-            expect(s).toHaveProperty('level');
-            expect(s).toHaveProperty('body');
-            expect(s).toHaveProperty('fin');
-            expect(s).toHaveProperty('belly');
-            expect(s).toHaveProperty('speed');
-            expect(s).toHaveProperty('aspect');
-            expect(s).toHaveProperty('tailStyle');
-            expect(s).toHaveProperty('finStyle');
-            expect(typeof s.name).toBe('string');
-            expect(typeof s.sizeInches).toBe('number');
-            expect(typeof s.level).toBe('number');
-            expect(s.sizeInches).toBeGreaterThan(0);
-            expect(s.level).toBeGreaterThanOrEqual(1);
-            expect(s.level).toBeLessThanOrEqual(7);
+            assert.ok('name' in s);
+            assert.ok('sizeInches' in s);
+            assert.ok('level' in s);
+            assert.ok('body' in s);
+            assert.ok('fin' in s);
+            assert.ok('belly' in s);
+            assert.ok('speed' in s);
+            assert.ok('aspect' in s);
+            assert.ok('tailStyle' in s);
+            assert.ok('finStyle' in s);
+            assert.strictEqual(typeof s.name, 'string');
+            assert.strictEqual(typeof s.sizeInches, 'number');
+            assert.strictEqual(typeof s.level, 'number');
+            assert.ok(s.sizeInches > 0);
+            assert.ok(s.level >= 1);
+            assert.ok(s.level <= 7);
         }
     });
 
     it('all species names are unique', () => {
         const names = SPECIES_CATALOG.map(s => s.name);
-        expect(new Set(names).size).toBe(names.length);
+        assert.strictEqual(new Set(names).size, names.length);
     });
 
     it('species span levels 1-7', () => {
         const levels = new Set(SPECIES_CATALOG.map(s => s.level));
         for (let i = 1; i <= 7; i++) {
-            expect(levels.has(i)).toBe(true);
+            assert.ok(levels.has(i));
         }
     });
 
     it('each tail style is a valid value', () => {
         const validStyles = ['fork', 'fan', 'round', 'sword'];
         for (const s of SPECIES_CATALOG) {
-            expect(validStyles).toContain(s.tailStyle);
+            assert.ok(validStyles.includes(s.tailStyle));
         }
     });
 
     it('each fin style is a valid value', () => {
         const validStyles = ['small', 'medium', 'tall', 'flowing'];
         for (const s of SPECIES_CATALOG) {
-            expect(validStyles).toContain(s.finStyle);
+            assert.ok(validStyles.includes(s.finStyle));
         }
     });
 
     it('only Neon Tetra has glowStripe', () => {
         const withGlow = SPECIES_CATALOG.filter(s => s.glowStripe);
-        expect(withGlow).toHaveLength(1);
-        expect(withGlow[0].name).toBe('Neon Tetra');
+        assert.strictEqual(withGlow.length, 1);
+        assert.strictEqual(withGlow[0].name, 'Neon Tetra');
     });
 
     it('marks Guppy, Platy, Molly, Swordtail as live bearers', () => {
         const liveBearers = SPECIES_CATALOG.filter(s => s.liveBearer);
         const names = liveBearers.map(s => s.name).sort();
-        expect(names).toEqual(['Guppy', 'Molly', 'Platy', 'Swordtail']);
+        assert.deepStrictEqual(names, ['Guppy', 'Molly', 'Platy', 'Swordtail']);
     });
 
     it('non-live-bearer species do not have liveBearer flag', () => {
         const nonLiveBearers = SPECIES_CATALOG.filter(s => !s.liveBearer);
-        expect(nonLiveBearers.length).toBe(10);
+        assert.strictEqual(nonLiveBearers.length, 10);
         for (const s of nonLiveBearers) {
-            expect(s.liveBearer).toBeFalsy();
+            assert.ok(!s.liveBearer);
         }
     });
 });
@@ -88,76 +95,76 @@ describe('Fish constructor', () => {
     it('creates a fish with species properties', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
         const fish = new Fish(species, 50, 50, 50);
-        expect(fish.species).toBe(species);
-        expect(fish.x).toBe(50);
-        expect(fish.y).toBe(50);
-        expect(fish.z).toBe(50);
+        assert.strictEqual(fish.species, species);
+        assert.strictEqual(fish.x, 50);
+        assert.strictEqual(fish.y, 50);
+        assert.strictEqual(fish.z, 50);
     });
 
     it('auto-generates position when not provided', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fish = new Fish(species);
         // rand(min, max) returns [min, max)
-        expect(fish.x).toBeGreaterThanOrEqual(15);
-        expect(fish.x).toBeLessThan(85);
-        expect(fish.y).toBeGreaterThanOrEqual(15);
-        expect(fish.y).toBeLessThan(80);
-        expect(fish.z).toBeGreaterThanOrEqual(15);
-        expect(fish.z).toBeLessThan(85);
+        assert.ok(fish.x >= 15);
+        assert.ok(fish.x < 85);
+        assert.ok(fish.y >= 15);
+        assert.ok(fish.y < 80);
+        assert.ok(fish.z >= 15);
+        assert.ok(fish.z < 85);
     });
 
     it('starts at 60% of max size', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Angelfish');
         const fish = new Fish(species);
-        expect(fish.currentSize).toBeCloseTo(species.sizeInches * 0.6);
-        expect(fish.maxSize).toBe(species.sizeInches);
+        assertCloseTo(fish.currentSize, species.sizeInches * 0.6);
+        assert.strictEqual(fish.maxSize, species.sizeInches);
     });
 
     it('starts with default hunger, strength, happiness', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.hunger).toBe(50);
-        expect(fish.strength).toBe(80);
-        expect(fish.happiness).toBe(80);
+        assert.strictEqual(fish.hunger, 50);
+        assert.strictEqual(fish.strength, 80);
+        assert.strictEqual(fish.happiness, 80);
     });
 
     it('starts in wandering state', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.state).toBe('wandering');
+        assert.strictEqual(fish.state, 'wandering');
     });
 
     it('assigns an optional name', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species, 50, 50, 50, 'Bubbles');
-        expect(fish.name).toBe('Bubbles');
+        assert.strictEqual(fish.name, 'Bubbles');
     });
 
     it('name defaults to empty string', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.name).toBe('');
+        assert.strictEqual(fish.name, '');
     });
 
     it('assigns unique IDs', () => {
         const species = SPECIES_CATALOG[0];
         const fish1 = new Fish(species);
         const fish2 = new Fish(species);
-        expect(fish1.id).not.toBe(fish2.id);
+        assert.notStrictEqual(fish1.id, fish2.id);
     });
 
     it('initializes distance and xp to 0', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.distanceSwum).toBe(0);
-        expect(fish.xp).toBe(0);
+        assert.strictEqual(fish.distanceSwum, 0);
+        assert.strictEqual(fish.xp, 0);
     });
 
     it('initializes leaving state to false', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.leaving).toBe(false);
-        expect(fish.leaveProgress).toBe(0);
+        assert.strictEqual(fish.leaving, false);
+        assert.strictEqual(fish.leaveProgress, 0);
     });
 });
 
@@ -165,19 +172,19 @@ describe('Fish.displayName', () => {
     it('returns species name when no custom name', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fish = new Fish(species);
-        expect(fish.displayName()).toBe('Guppy');
+        assert.strictEqual(fish.displayName(), 'Guppy');
     });
 
     it('returns "name (species)" when custom name is set', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fish = new Fish(species, 50, 50, 50, 'Nemo');
-        expect(fish.displayName()).toBe('Nemo (Guppy)');
+        assert.strictEqual(fish.displayName(), 'Nemo (Guppy)');
     });
 
     it('returns species name for empty string name', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Betta');
         const fish = new Fish(species, 50, 50, 50, '');
-        expect(fish.displayName()).toBe('Betta');
+        assert.strictEqual(fish.displayName(), 'Betta');
     });
 });
 
@@ -186,14 +193,14 @@ describe('Fish.boop', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
         fish.boop();
-        expect(fish.state).toBe('booped');
+        assert.strictEqual(fish.state, 'booped');
     });
 
     it('sets boopTimer', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
         fish.boop();
-        expect(fish.boopTimer).toBeCloseTo(0.6);
+        assertCloseTo(fish.boopTimer, 0.6);
     });
 
     it('increases strength by 5 (clamped to 100)', () => {
@@ -201,7 +208,7 @@ describe('Fish.boop', () => {
         const fish = new Fish(species);
         fish.strength = 50;
         fish.boop();
-        expect(fish.strength).toBe(55);
+        assert.strictEqual(fish.strength, 55);
     });
 
     it('clamps strength at 100', () => {
@@ -209,7 +216,7 @@ describe('Fish.boop', () => {
         const fish = new Fish(species);
         fish.strength = 98;
         fish.boop();
-        expect(fish.strength).toBe(100);
+        assert.strictEqual(fish.strength, 100);
     });
 
     it('does not boop again while already booped', () => {
@@ -219,7 +226,7 @@ describe('Fish.boop', () => {
         const timer = fish.boopTimer;
         const heading = fish.targetHeading;
         fish.boop(); // should be ignored
-        expect(fish.boopTimer).toBe(timer);
+        assert.strictEqual(fish.boopTimer, timer);
     });
 
     it('changes target heading on boop', () => {
@@ -227,7 +234,7 @@ describe('Fish.boop', () => {
         const fish = new Fish(species);
         const originalHeading = fish.targetHeading;
         fish.boop();
-        expect(fish.targetHeading).not.toBe(originalHeading);
+        assert.notStrictEqual(fish.targetHeading, originalHeading);
     });
 });
 
@@ -239,13 +246,13 @@ describe('Fish.serialize / Fish.deserialize', () => {
         fish.strength = 70;
 
         const data = fish.serialize();
-        expect(data.speciesName).toBe('Molly');
-        expect(data.name).toBe('Shadow');
-        expect(data.x).toBe(30);
-        expect(data.y).toBe(40);
-        expect(data.z).toBe(50);
-        expect(data.hunger).toBe(60);
-        expect(data.strength).toBe(70);
+        assert.strictEqual(data.speciesName, 'Molly');
+        assert.strictEqual(data.name, 'Shadow');
+        assert.strictEqual(data.x, 30);
+        assert.strictEqual(data.y, 40);
+        assert.strictEqual(data.z, 50);
+        assert.strictEqual(data.hunger, 60);
+        assert.strictEqual(data.strength, 70);
     });
 
     it('deserializes fish state', () => {
@@ -264,26 +271,26 @@ describe('Fish.serialize / Fish.deserialize', () => {
         };
 
         const fish = Fish.deserialize(data);
-        expect(fish).not.toBeNull();
-        expect(fish.species.name).toBe('Molly');
-        expect(fish.name).toBe('Shadow');
-        expect(fish.x).toBe(30);
-        expect(fish.y).toBe(40);
-        expect(fish.z).toBe(50);
-        expect(fish.heading).toBe(1.5);
-        expect(fish.currentSize).toBe(2.5);
-        expect(fish.hunger).toBe(60);
-        expect(fish.strength).toBe(70);
-        expect(fish.happiness).toBe(65);
-        expect(fish.sadTimer).toBe(10);
-        expect(fish.distanceSwum).toBe(500);
-        expect(fish.xp).toBe(100);
+        assert.notStrictEqual(fish, null);
+        assert.strictEqual(fish.species.name, 'Molly');
+        assert.strictEqual(fish.name, 'Shadow');
+        assert.strictEqual(fish.x, 30);
+        assert.strictEqual(fish.y, 40);
+        assert.strictEqual(fish.z, 50);
+        assert.strictEqual(fish.heading, 1.5);
+        assert.strictEqual(fish.currentSize, 2.5);
+        assert.strictEqual(fish.hunger, 60);
+        assert.strictEqual(fish.strength, 70);
+        assert.strictEqual(fish.happiness, 65);
+        assert.strictEqual(fish.sadTimer, 10);
+        assert.strictEqual(fish.distanceSwum, 500);
+        assert.strictEqual(fish.xp, 100);
     });
 
     it('returns null for unknown species', () => {
         const data = { speciesName: 'NonExistentFish', x: 50, y: 50, z: 50 };
         const fish = Fish.deserialize(data);
-        expect(fish).toBeNull();
+        assert.strictEqual(fish, null);
     });
 
     it('roundtrips serialize -> deserialize', () => {
@@ -296,14 +303,14 @@ describe('Fish.serialize / Fish.deserialize', () => {
         const data = original.serialize();
         const restored = Fish.deserialize(data);
 
-        expect(restored.species.name).toBe('Angelfish');
-        expect(restored.name).toBe('Angel');
-        expect(restored.x).toBe(25);
-        expect(restored.y).toBe(35);
-        expect(restored.z).toBe(45);
-        expect(restored.hunger).toBe(75);
-        expect(restored.strength).toBe(60);
-        expect(restored.distanceSwum).toBeCloseTo(123.4);
+        assert.strictEqual(restored.species.name, 'Angelfish');
+        assert.strictEqual(restored.name, 'Angel');
+        assert.strictEqual(restored.x, 25);
+        assert.strictEqual(restored.y, 35);
+        assert.strictEqual(restored.z, 45);
+        assert.strictEqual(restored.hunger, 75);
+        assert.strictEqual(restored.strength, 60);
+        assertCloseTo(restored.distanceSwum, 123.4);
     });
 
     it('uses defaults for missing fields on deserialize', () => {
@@ -312,14 +319,14 @@ describe('Fish.serialize / Fish.deserialize', () => {
             // All other fields missing
         };
         const fish = Fish.deserialize(data);
-        expect(fish).not.toBeNull();
-        expect(fish.hunger).toBe(50);
-        expect(fish.strength).toBe(80);
-        expect(fish.happiness).toBe(80);
-        expect(fish.sadTimer).toBe(0);
-        expect(fish.distanceSwum).toBe(0);
-        expect(fish.xp).toBe(0);
-        expect(fish.currentSize).toBeCloseTo(1.5 * 0.6);
+        assert.notStrictEqual(fish, null);
+        assert.strictEqual(fish.hunger, 50);
+        assert.strictEqual(fish.strength, 80);
+        assert.strictEqual(fish.happiness, 80);
+        assert.strictEqual(fish.sadTimer, 0);
+        assert.strictEqual(fish.distanceSwum, 0);
+        assert.strictEqual(fish.xp, 0);
+        assertCloseTo(fish.currentSize, 1.5 * 0.6);
     });
 });
 
@@ -327,7 +334,7 @@ describe('Fish.getSizePixels', () => {
     it('returns currentSize * 20', () => {
         const species = SPECIES_CATALOG[0];
         const fish = new Fish(species);
-        expect(fish.getSizePixels()).toBe(fish.currentSize * 20);
+        assert.strictEqual(fish.getSizePixels(), fish.currentSize * 20);
     });
 });
 
@@ -335,7 +342,7 @@ describe('Fish speed', () => {
     it('fish speed matches species speed', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Danio');
         const fish = new Fish(species);
-        expect(fish.speed).toBe(70); // Danio speed
+        assert.strictEqual(fish.speed, 70); // Danio speed
     });
 });
 
@@ -343,8 +350,8 @@ describe('Fish fry properties', () => {
     it('constructor defaults isFry to false and fryAge to 0', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fish = new Fish(species);
-        expect(fish.isFry).toBe(false);
-        expect(fish.fryAge).toBe(0);
+        assert.strictEqual(fish.isFry, false);
+        assert.strictEqual(fish.fryAge, 0);
     });
 });
 
@@ -352,18 +359,18 @@ describe('createFry', () => {
     it('creates a fry with isFry=true and 20% size', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fry = createFry(species);
-        expect(fry.isFry).toBe(true);
-        expect(fry.fryAge).toBe(0);
-        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
-        expect(fry.name).toBe('Guppy Fry');
+        assert.strictEqual(fry.isFry, true);
+        assert.strictEqual(fry.fryAge, 0);
+        assertCloseTo(fry.currentSize, species.sizeInches * 0.2);
+        assert.strictEqual(fry.name, 'Guppy Fry');
     });
 
     it('creates fry for each live bearer species', () => {
         for (const species of SPECIES_CATALOG.filter(s => s.liveBearer)) {
             const fry = createFry(species);
-            expect(fry.isFry).toBe(true);
-            expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
-            expect(fry.name).toBe(`${species.name} Fry`);
+            assert.strictEqual(fry.isFry, true);
+            assertCloseTo(fry.currentSize, species.sizeInches * 0.2);
+            assert.strictEqual(fry.name, `${species.name} Fry`);
         }
     });
 });
@@ -374,27 +381,27 @@ describe('Fry growth', () => {
         const fry = createFry(species);
 
         // At start: 20% of max
-        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
+        assertCloseTo(fry.currentSize, species.sizeInches * 0.2);
 
         // Simulate half growth (43200s)
         fry.update(43200);
-        expect(fry.isFry).toBe(true);
-        expect(fry.currentSize).toBeCloseTo(
+        assert.strictEqual(fry.isFry, true);
+        assertCloseTo(fry.currentSize,
             species.sizeInches * 0.2 + (species.sizeInches * 0.4) * 0.5,
             1
         );
 
         // Simulate remaining growth
         fry.update(43200);
-        expect(fry.isFry).toBe(false);
-        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.6, 1);
+        assert.strictEqual(fry.isFry, false);
+        assertCloseTo(fry.currentSize, species.sizeInches * 0.6, 1);
     });
 
     it('fry clears isFry flag after 86400s', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const fry = createFry(species);
         fry.update(86400);
-        expect(fry.isFry).toBe(false);
+        assert.strictEqual(fry.isFry, false);
     });
 
     it('normal fish do not grow when fry (isFry blocks normal growth)', () => {
@@ -406,7 +413,7 @@ describe('Fry growth', () => {
         fry.update(1);
         // Size should be determined by fry growth formula, not normal growth
         const expectedSize = species.sizeInches * 0.2 + (species.sizeInches * 0.4) * (1 / 86400);
-        expect(fry.currentSize).toBeCloseTo(expectedSize, 4);
+        assertCloseTo(fry.currentSize, expectedSize, 4);
     });
 });
 
@@ -416,8 +423,8 @@ describe('Fry serialize / deserialize', () => {
         const fry = createFry(species);
         fry.fryAge = 1000;
         const data = fry.serialize();
-        expect(data.isFry).toBe(true);
-        expect(data.fryAge).toBe(1000);
+        assert.strictEqual(data.isFry, true);
+        assert.strictEqual(data.fryAge, 1000);
     });
 
     it('deserializes fry fields', () => {
@@ -428,12 +435,12 @@ describe('Fry serialize / deserialize', () => {
             fryAge: 43200,
         };
         const fish = Fish.deserialize(data);
-        expect(fish.isFry).toBe(true);
-        expect(fish.fryAge).toBe(43200);
+        assert.strictEqual(fish.isFry, true);
+        assert.strictEqual(fish.fryAge, 43200);
         // Size should be at 50% growth (between 20% and 60%)
         const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
         const expectedSize = species.sizeInches * 0.2 + (species.sizeInches * 0.4) * 0.5;
-        expect(fish.currentSize).toBeCloseTo(expectedSize, 2);
+        assertCloseTo(fish.currentSize, expectedSize, 2);
     });
 
     it('roundtrips fry serialize -> deserialize', () => {
@@ -445,15 +452,15 @@ describe('Fry serialize / deserialize', () => {
 
         const data = fry.serialize();
         const restored = Fish.deserialize(data);
-        expect(restored.isFry).toBe(true);
-        expect(restored.fryAge).toBe(20000);
-        expect(restored.currentSize).toBeCloseTo(fry.currentSize, 2);
+        assert.strictEqual(restored.isFry, true);
+        assert.strictEqual(restored.fryAge, 20000);
+        assertCloseTo(restored.currentSize, fry.currentSize, 2);
     });
 
     it('defaults isFry to false for old saves without fry fields', () => {
         const data = { speciesName: 'Guppy' };
         const fish = Fish.deserialize(data);
-        expect(fish.isFry).toBe(false);
-        expect(fish.fryAge).toBe(0);
+        assert.strictEqual(fish.isFry, false);
+        assert.strictEqual(fish.fryAge, 0);
     });
 });
