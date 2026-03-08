@@ -510,18 +510,32 @@ body.high-contrast .tab-panel h3 { color: #80a8c8; }
     margin-top: 2px;
 }
 
-/* Breed tag in store */
-.breed-tag {
-    display: inline-block;
-    font-size: 0.55rem;
-    color: #ff7090;
-    background: rgba(255, 80, 120, 0.12);
-    border: 1px solid rgba(255, 80, 120, 0.25);
-    border-radius: 8px;
-    padding: 1px 5px;
-    margin-left: 6px;
-    vertical-align: middle;
-    font-weight: 400;
+/* Breed icon in store — two-fish glyph */
+.breed-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    margin-left: 4px;
+    position: relative;
+    opacity: 0.45;
+}
+.breed-icon::before,
+.breed-icon::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 8px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: #8ab4d0;
+}
+.breed-icon::before {
+    top: 5px;
+    left: 2px;
+}
+.breed-icon::after {
+    top: 13px;
+    left: 10px;
+    transform: scaleX(-1);
 }
 
 /* Breed info in fish cards */

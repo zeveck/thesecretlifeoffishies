@@ -321,17 +321,22 @@ function refreshStore() {
         else if (!canAdd) statusText = ' (tank full)';
         else if (!canAfford) statusText = ` (need ${cost - coins} coins)`;
 
-        const breedTag = species.liveBearer ? '<span class="breed-tag">Breeds in pairs</span>' : '';
-
         const info = document.createElement('div');
         info.className = 'info';
         info.innerHTML = `
-            <div class="name">${species.name}${breedTag}</div>
+            <div class="name">${species.name}</div>
             <div class="detail">${species.sizeInches}" • Level ${species.level} • ${cost} coins${statusText}</div>
         `;
 
         item.appendChild(preview);
         item.appendChild(info);
+
+        if (species.liveBearer) {
+            const breedIcon = document.createElement('span');
+            breedIcon.className = 'breed-icon';
+            breedIcon.title = 'Breeds in pairs';
+            item.appendChild(breedIcon);
+        }
 
         if (available && canAdd && canAfford) {
             item.addEventListener('click', () => {
@@ -446,11 +451,15 @@ function refreshMyFish() {
         tempFish.heading = 0; tempFish.tailPhase = 0; tempFish.pitch = 0;
         tempFish.currentSize = fish.currentSize;
         const rawPx = tempFish.currentSize * 20;
-        // Account for aspect ratio: body extends aspect/2 * px wide, 0.5 * px tall, plus tail
-        const fishFullW = rawPx * (fish.species.aspect / 2 + 0.5); // body half + tail
-        const fishFullH = rawPx;
-        const scaleX = (canvas.width * 0.85) / fishFullW;
-        const scaleY = (canvas.height * 0.85) / fishFullH;
+        const bodyW = rawPx * (fish.species.aspect / 2);
+        const bodyH = rawPx * 0.5;
+        // Tail extends up to 1.8x bodyW behind; dorsal fin up to 2x bodyH above
+        const tailExt = fish.species.tailStyle === 'fan' ? 1.8 : fish.species.tailStyle === 'sword' ? 1.5 : 1.3;
+        const finExt = fish.species.finStyle === 'tall' ? 2.0 : fish.species.finStyle === 'flowing' ? 1.6 : 1.4;
+        const fishFullW = bodyW + bodyW * tailExt;
+        const fishFullH = bodyH * finExt + bodyH;
+        const scaleX = (canvas.width * 0.8) / fishFullW;
+        const scaleY = (canvas.height * 0.8) / fishFullH;
         const scale = Math.min(scaleX, scaleY);
         cctx.save();
         cctx.translate(canvas.width / 2, canvas.height / 2);

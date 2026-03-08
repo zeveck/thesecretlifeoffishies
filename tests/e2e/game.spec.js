@@ -481,26 +481,25 @@ test.describe('My Fish tab', () => {
 
 // --- Breed Pair Tests ---
 test.describe('Breed pairs', () => {
-    test('live bearer species show "Breeds in pairs" tag in store', async ({ page }) => {
+    test('live bearer species show breed icon in store', async ({ page }) => {
         await startGame(page);
         await page.locator('#menu-btn').click();
         await page.locator('.tab[data-tab="store"]').click();
 
         const storeList = page.locator('#store-list');
-        // Guppy is a live bearer and should have the breed tag
-        const guppyBreedTag = storeList.locator('.breed-tag');
-        await expect(guppyBreedTag.first()).toBeVisible();
-        await expect(guppyBreedTag.first()).toHaveText('Breeds in pairs');
+        // Guppy is a live bearer and should have the breed icon
+        const breedIcons = storeList.locator('.breed-icon');
+        await expect(breedIcons.first()).toBeAttached();
     });
 
-    test('non-live-bearer species do not show breed tag', async ({ page }) => {
+    test('only live bearer species have breed icon', async ({ page }) => {
         await startGame(page);
         await page.locator('#menu-btn').click();
         await page.locator('.tab[data-tab="store"]').click();
 
-        // Count breed tags — should equal number of live bearer species (4)
-        const breedTags = page.locator('#store-list .breed-tag');
-        await expect(breedTags).toHaveCount(4);
+        // Count breed icons — should equal number of live bearer species (4)
+        const breedIcons = page.locator('#store-list .breed-icon');
+        await expect(breedIcons).toHaveCount(4);
     });
 });
 

@@ -37,14 +37,14 @@ export function addBoopEffect(screenX, screenY) {
     const heartCount = 2 + Math.floor(Math.random() * 2); // 2-3
     for (let i = 0; i < heartCount; i++) {
         heartParticles.push({
-            x: screenX + rand(-8, 8),
+            x: screenX + rand(-10, 10),
             y: screenY,
-            vy: rand(-60, -40),
+            vy: rand(-40, -25),
             swayPhase: rand(0, Math.PI * 2),
-            swayFreq: rand(3, 5),
+            swayFreq: rand(2, 4),
             swayAmp: rand(8, 15),
-            age: 0, maxAge: rand(0.8, 1.2),
-            size: rand(5, 8),
+            age: 0, maxAge: rand(1.2, 1.8),
+            size: rand(7, 11),
         });
     }
 }
