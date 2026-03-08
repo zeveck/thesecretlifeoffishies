@@ -5,6 +5,7 @@ import { getTank } from './tank.js';
 
 // Boop sparkles
 const boopParticles = [];
+const heartParticles = [];
 
 export function addBoopEffect(screenX, screenY) {
     for (let i = 0; i < 8; i++) {
@@ -17,6 +18,20 @@ export function addBoopEffect(screenX, screenY) {
             age: 0, maxAge: rand(0.3, 0.6),
             size: rand(2, 4),
             hue: rand(30, 60), // golden sparkles
+        });
+    }
+    // Heart particles — float upward and fade
+    const heartCount = 2 + Math.floor(Math.random() * 2); // 2-3
+    for (let i = 0; i < heartCount; i++) {
+        heartParticles.push({
+            x: screenX + rand(-8, 8),
+            y: screenY,
+            vy: rand(-60, -40),
+            swayPhase: rand(0, Math.PI * 2),
+            swayFreq: rand(3, 5),
+            swayAmp: rand(8, 15),
+            age: 0, maxAge: rand(0.8, 1.2),
+            size: rand(5, 8),
         });
     }
 }
@@ -37,6 +52,33 @@ export function drawBoopEffects(ctx, dt) {
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
         ctx.fill();
     }
+
+    // Heart particles
+    for (let i = heartParticles.length - 1; i >= 0; i--) {
+        const h = heartParticles[i];
+        h.age += dt;
+        if (h.age >= h.maxAge) { heartParticles.splice(i, 1); continue; }
+        h.y += h.vy * dt;
+        const t = h.age / h.maxAge;
+        const alpha = 1 - t;
+        const scale = 1 - t * 0.3;
+        const sway = Math.sin(h.swayPhase + h.swayFreq * h.age) * h.swayAmp;
+        const hx = h.x + sway;
+        const s = h.size * scale;
+        drawHeart(ctx, hx, h.y, s, alpha);
+    }
+}
+
+function drawHeart(ctx, cx, cy, size, alpha) {
+    ctx.save();
+    ctx.fillStyle = `rgba(255, 80, 120, ${alpha})`;
+    ctx.beginPath();
+    const s = size * 0.5;
+    ctx.moveTo(cx, cy + s * 0.4);
+    ctx.bezierCurveTo(cx - s, cy - s * 0.3, cx - s * 0.5, cy - s, cx, cy - s * 0.5);
+    ctx.bezierCurveTo(cx + s * 0.5, cy - s, cx + s, cy - s * 0.3, cx, cy + s * 0.4);
+    ctx.fill();
+    ctx.restore();
 }
 
 // Ripples (surface taps)

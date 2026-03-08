@@ -9,6 +9,7 @@ import { setShowToggleOnMobile, getShowToggleOnMobile } from './orientation.js';
 import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
 import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
+import { getMasterVolume, setMasterVolume, getSfxVolume, setSfxVolume, getMusicVolume, setMusicVolume } from './audio.js';
 
 const FISH_TIPS = [
     { tip: "Goldfish can remember things for months -- the 3-second memory myth is totally false.", source: "https://www.livescience.com/goldfish-memory.html" },
@@ -179,7 +180,24 @@ function openConfigDialog() {
     document.getElementById('toggle-free-feed').checked = getTank().freeFeed;
     document.getElementById('toggle-show-view').checked = getShowToggleOnMobile();
     document.getElementById('toggle-high-contrast').checked = document.body.classList.contains('high-contrast');
+
+    // Volume sliders
+    setupVolumeSlider('slider-master-volume', 'val-master-volume', getMasterVolume, setMasterVolume);
+    setupVolumeSlider('slider-sfx-volume', 'val-sfx-volume', getSfxVolume, setSfxVolume);
+    setupVolumeSlider('slider-music-volume', 'val-music-volume', getMusicVolume, setMusicVolume);
+
     overlay.classList.remove('hidden');
+}
+
+function setupVolumeSlider(sliderId, valId, getter, setter) {
+    const slider = document.getElementById(sliderId);
+    const valEl = document.getElementById(valId);
+    slider.value = Math.round(getter() * 100);
+    valEl.textContent = slider.value + '%';
+    slider.oninput = () => {
+        setter(slider.value / 100);
+        valEl.textContent = slider.value + '%';
+    };
 }
 
 function closeConfigDialog() {
@@ -424,8 +442,12 @@ function refreshMyFish() {
         tempFish.heading = 0; tempFish.tailPhase = 0; tempFish.pitch = 0;
         tempFish.currentSize = fish.currentSize;
         const rawPx = tempFish.currentSize * 20;
-        const targetPx = Math.min(canvas.width * 0.35, canvas.height * 0.7);
-        const scale = targetPx / rawPx;
+        // Account for aspect ratio: body extends aspect/2 * px wide, 0.5 * px tall, plus tail
+        const fishFullW = rawPx * (fish.species.aspect / 2 + 0.5); // body half + tail
+        const fishFullH = rawPx;
+        const scaleX = (canvas.width * 0.85) / fishFullW;
+        const scaleY = (canvas.height * 0.85) / fishFullH;
+        const scale = Math.min(scaleX, scaleY);
         cctx.save();
         cctx.translate(canvas.width / 2, canvas.height / 2);
         cctx.scale(scale, scale);

@@ -151,6 +151,36 @@ test.describe('Config dialog', () => {
         await toggle.uncheck();
         await expect(page.locator('body')).not.toHaveClass(/high-contrast/);
     });
+
+    test('volume sliders are visible in config dialog', async ({ page }) => {
+        await startGame(page);
+        await page.locator('#menu-btn').click();
+        await page.locator('#btn-config').click();
+
+        await expect(page.locator('#slider-master-volume')).toBeVisible();
+        await expect(page.locator('#slider-sfx-volume')).toBeVisible();
+        await expect(page.locator('#slider-music-volume')).toBeVisible();
+    });
+
+    test('volume slider value labels show percentages', async ({ page }) => {
+        await startGame(page);
+        await page.locator('#menu-btn').click();
+        await page.locator('#btn-config').click();
+
+        await expect(page.locator('#val-master-volume')).toHaveText('70%');
+        await expect(page.locator('#val-sfx-volume')).toHaveText('80%');
+        await expect(page.locator('#val-music-volume')).toHaveText('50%');
+    });
+
+    test('volume slider updates displayed value on input', async ({ page }) => {
+        await startGame(page);
+        await page.locator('#menu-btn').click();
+        await page.locator('#btn-config').click();
+
+        const slider = page.locator('#slider-master-volume');
+        await slider.fill('25');
+        await expect(page.locator('#val-master-volume')).toHaveText('25%');
+    });
 });
 
 // --- Store Tests ---

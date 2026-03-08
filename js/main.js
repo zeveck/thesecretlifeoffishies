@@ -9,6 +9,7 @@ import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, draw
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
+import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings } from './audio.js';
 import { clamp, dist, rand } from './utils.js';
 
 // --- State ---
@@ -48,8 +49,13 @@ let showFishLabels = false;
 let longPressStartX = 0, longPressStartY = 0;
 let draggingDeco = null;    // index into tank.decorations, or null
 let decoGrabOffset = null;  // { dx, dy } so decoration doesn't snap to finger center
+let audioInitialized = false;
 
 canvas.addEventListener('pointerdown', (e) => {
+    if (!audioInitialized) {
+        initAudio();
+        audioInitialized = true;
+    }
     if (isDrawerOpen()) return;
     pointerDown = true;
     pointerX = e.clientX;
@@ -204,6 +210,7 @@ function handleTap(px, py) {
                 }
 
                 addBoopEffect(sx, sy);
+                playBoopSound();
                 break;
             }
         }
@@ -475,6 +482,7 @@ function getSaveState() {
             highContrast: document.body.classList.contains('high-contrast'),
             mobileViewMode: getMobileViewMode(),
             viewAngle: Math.round(getViewAngle()),
+            audio: saveAudioSettings(),
         },
     };
 }
@@ -519,6 +527,7 @@ function init() {
         refreshDailyPellets();
 
         if (saved.settings) {
+            if (saved.settings.audio) loadAudioSettings(saved.settings.audio);
             getTank().freeFeed = saved.settings.freeFeed ?? false;
             const showToggle = saved.settings.showViewToggle ?? true;
             setShowToggleOnMobile(showToggle);
