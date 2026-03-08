@@ -444,10 +444,13 @@ function refreshMyFish() {
         const inches = Math.round(totalInches % 12);
         const distStr = feet > 0 ? `${feet}ft ${inches}in` : `${inches}in`;
 
+        const fryBadge = fish.isFry ? '<span class="fry-badge">Fry</span>' : '';
+        const fryGrowth = fish.isFry ? `<div class="fry-growth">Growth: ${Math.round(Math.min(fish.fryAge / 86400, 1) * 100)}%</div>` : '';
+
         const info = document.createElement('div');
         info.className = 'fish-card-info';
         info.innerHTML = `
-            <div class="fish-card-name">${fish.displayName()}</div>
+            <div class="fish-card-name">${fish.displayName()}${fryBadge}</div>
             <div class="fish-card-species">${fish.species.name}</div>
             <div class="fish-card-stats">
                 <div class="fish-stat-bar"><span>Mood</span><div class="bar-bg"><div class="bar" style="width:${fish.happiness}%;background:${moodColor}"></div></div><span class="stat-label">${mood}</span></div>
@@ -455,6 +458,7 @@ function refreshMyFish() {
                 <div class="fish-stat-bar"><span>Strength</span><div class="bar-bg"><div class="bar" style="width:${fish.strength}%;background:#5a9ed6"></div></div><span class="stat-label">${Math.round(fish.strength)}%</span></div>
             </div>
             <div class="fish-card-detail">${fish.currentSize.toFixed(1)}" long &bull; Swum: ${distStr}</div>
+            ${fryGrowth}
         `;
 
         card.appendChild(info);

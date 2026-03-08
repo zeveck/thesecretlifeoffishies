@@ -6,12 +6,12 @@ import { getWaterQuality, getDecorationHappinessBonus } from './tank.js';
 
 export const SPECIES_CATALOG = [
     { name: 'Neon Tetra',     sizeInches: 1,   level: 1, body: '#2244aa', fin: '#ff2030', belly: '#8090bb', speed: 60, aspect: 3.2, tailStyle: 'fork',  finStyle: 'small', glowStripe: '#00ffff' },
-    { name: 'Guppy',          sizeInches: 1.5, level: 1, body: '#e68a00', fin: '#ff5533', belly: '#ffe0a0', speed: 55, aspect: 2.5, tailStyle: 'fan',   finStyle: 'small' },
-    { name: 'Platy',          sizeInches: 2,   level: 2, body: '#e64040', fin: '#cc3030', belly: '#ffa070', speed: 50, aspect: 2.2, tailStyle: 'fan',   finStyle: 'medium' },
+    { name: 'Guppy',          sizeInches: 1.5, level: 1, body: '#e68a00', fin: '#ff5533', belly: '#ffe0a0', speed: 55, aspect: 2.5, tailStyle: 'fan',   finStyle: 'small', liveBearer: true },
+    { name: 'Platy',          sizeInches: 2,   level: 2, body: '#e64040', fin: '#cc3030', belly: '#ffa070', speed: 50, aspect: 2.2, tailStyle: 'fan',   finStyle: 'medium', liveBearer: true },
     { name: 'Danio',          sizeInches: 1.5, level: 2, body: '#3070dd', fin: '#4090ff', belly: '#d0e8ff', speed: 70, aspect: 3.0, tailStyle: 'fork',  finStyle: 'small' },
-    { name: 'Molly',          sizeInches: 3,   level: 3, body: '#222222', fin: '#333333', belly: '#444444', speed: 45, aspect: 2.3, tailStyle: 'round', finStyle: 'medium' },
+    { name: 'Molly',          sizeInches: 3,   level: 3, body: '#222222', fin: '#333333', belly: '#444444', speed: 45, aspect: 2.3, tailStyle: 'round', finStyle: 'medium', liveBearer: true },
     { name: 'Corydoras',      sizeInches: 2,   level: 3, body: '#c09060', fin: '#a07848', belly: '#e8d0b0', speed: 35, aspect: 2.0, tailStyle: 'fork',  finStyle: 'medium' },
-    { name: 'Swordtail',      sizeInches: 3,   level: 4, body: '#dd4422', fin: '#ff6633', belly: '#ffbb88', speed: 50, aspect: 2.8, tailStyle: 'sword', finStyle: 'medium' },
+    { name: 'Swordtail',      sizeInches: 3,   level: 4, body: '#dd4422', fin: '#ff6633', belly: '#ffbb88', speed: 50, aspect: 2.8, tailStyle: 'sword', finStyle: 'medium', liveBearer: true },
     { name: 'Cherry Barb',    sizeInches: 2,   level: 4, body: '#cc2244', fin: '#aa1133', belly: '#ff8899', speed: 55, aspect: 2.6, tailStyle: 'fork',  finStyle: 'small' },
     { name: 'Angelfish',      sizeInches: 4,   level: 5, body: '#d0d0d0', fin: '#b0b0b0', belly: '#ffffff', speed: 35, aspect: 1.5, tailStyle: 'fan',   finStyle: 'tall' },
     { name: 'Gourami',        sizeInches: 4,   level: 5, body: '#3090b0', fin: '#40a8cc', belly: '#a0d8e8', speed: 30, aspect: 2.0, tailStyle: 'round', finStyle: 'medium' },
@@ -62,6 +62,9 @@ export class Fish {
         this.leaveProgress = 0;
 
         this.speed = species.speed;
+
+        this.isFry = false;
+        this.fryAge = 0;
     }
 
     update(dt) {
@@ -92,8 +95,18 @@ export class Fish {
             this.sadTimer = Math.max(0, this.sadTimer - dt * 2);
         }
 
+        // Fry growth
+        if (this.isFry) {
+            this.fryAge += dt;
+            const t = Math.min(this.fryAge / 86400, 1);
+            this.currentSize = lerp(this.maxSize * 0.2, this.maxSize * 0.6, t);
+            if (this.fryAge >= 86400) {
+                this.isFry = false;
+            }
+        }
+
         // Growth when fed and healthy
-        if (this.hunger < 60 && this.happiness > 40) {
+        if (!this.isFry && this.hunger < 60 && this.happiness > 40) {
             this.currentSize = Math.min(this.currentSize + 0.0001 * dt, this.maxSize);
         }
 
@@ -580,6 +593,8 @@ export class Fish {
             sadTimer: this.sadTimer,
             distanceSwum: this.distanceSwum,
             xp: this.xp,
+            isFry: this.isFry,
+            fryAge: this.fryAge,
         };
     }
 
@@ -596,10 +611,24 @@ export class Fish {
         f.sadTimer = data.sadTimer ?? 0;
         f.distanceSwum = data.distanceSwum ?? 0;
         f.xp = data.xp ?? 0;
+        f.isFry = data.isFry ?? false;
+        f.fryAge = data.fryAge ?? 0;
+        if (f.isFry) {
+            const t = Math.min(f.fryAge / 86400, 1);
+            f.currentSize = lerp(f.maxSize * 0.2, f.maxSize * 0.6, t);
+        }
         return f;
     }
 
     getSizePixels() {
         return this.currentSize * 20;
     }
+}
+
+export function createFry(species) {
+    const fry = new Fish(species, undefined, undefined, undefined, `${species.name} Fry`);
+    fry.isFry = true;
+    fry.fryAge = 0;
+    fry.currentSize = species.sizeInches * 0.2;
+    return fry;
 }

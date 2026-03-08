@@ -1,9 +1,9 @@
 // main.js — Entry point, game loop, canvas setup, init
 
-import { Fish, SPECIES_CATALOG } from './fish.js';
+import { Fish, SPECIES_CATALOG, createFry } from './fish.js';
 import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChemistry, moveDecoration } from './tank.js';
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
-import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp } from './store.js';
+import { getProgression, addXP, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp, getCurrentStockInches, getTankCapacity } from './store.js';
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
@@ -17,6 +17,9 @@ const ctx = canvas.getContext('2d');
 let fishes = [];
 let gameTime = 0;
 let lastTime = 0;
+let breedTimers = {};
+// Easter egg: track rapid boops between same-species live bearers
+let easterEggBoops = {}; // { speciesName: { count, firstBoopTime } }
 
 // Tank display bounds (in pixels)
 let tankLeft, tankTop, tankW, tankH;
@@ -169,7 +172,37 @@ function handleTap(px, py) {
                 if (now - fish.lastBoopXP > 5000) {
                     addXP(1);
                     fish.lastBoopXP = now;
+
+                    // Boop breeding bonus: add 30s if live bearer with a valid pair
+                    if (fish.species.liveBearer && !fish.isFry) {
+                        const pairCount = fishes.filter(f => f.species.name === fish.species.name && !f.isFry).length;
+                        if (pairCount >= 2) {
+                            breedTimers[fish.species.name] = (breedTimers[fish.species.name] || 0) + 30;
+                        }
+                    }
                 }
+
+                // Easter egg: rapid boops between same-species live bearers
+                if (fish.species.liveBearer && !fish.isFry) {
+                    const name = fish.species.name;
+                    const pairCount = fishes.filter(f => f.species.name === name && !f.isFry).length;
+                    if (pairCount >= 2) {
+                        const tracker = easterEggBoops[name] || { count: 0, firstBoopTime: 0 };
+                        if (now - tracker.firstBoopTime > 10000) {
+                            tracker.count = 1;
+                            tracker.firstBoopTime = now;
+                        } else {
+                            tracker.count++;
+                        }
+                        easterEggBoops[name] = tracker;
+                        if (tracker.count >= 10) {
+                            spawnFryEasterEgg(name);
+                            tracker.count = 0;
+                            tracker.firstBoopTime = 0;
+                        }
+                    }
+                }
+
                 addBoopEffect(sx, sy);
                 break;
             }
@@ -207,6 +240,55 @@ function clearFingerFollow() {
     }
 }
 
+// --- Breeding ---
+function updateBreeding(dt) {
+    const liveBearerSpecies = SPECIES_CATALOG.filter(s => s.liveBearer);
+    for (const species of liveBearerSpecies) {
+        const adults = fishes.filter(f => f.species.name === species.name && !f.isFry);
+        const happyAdults = adults.filter(f => f.happiness > 40);
+        if (happyAdults.length >= 2) {
+            breedTimers[species.name] = (breedTimers[species.name] || 0) + dt;
+        } else {
+            breedTimers[species.name] = 0;
+        }
+
+        if (breedTimers[species.name] >= 3600) {
+            const frySizeInches = species.sizeInches * 0.2;
+            if (getCurrentStockInches(fishes) + frySizeInches <= getTankCapacity()) {
+                const fry = createFry(species);
+                fishes.push(fry);
+                showFryToast(species.name);
+                breedTimers[species.name] = 0;
+            } else {
+                breedTimers[species.name] = 600; // cap, ready when room opens
+            }
+        }
+    }
+}
+
+function spawnFryEasterEgg(speciesName) {
+    const species = SPECIES_CATALOG.find(s => s.name === speciesName);
+    if (!species) return;
+    const frySizeInches = species.sizeInches * 0.2;
+    if (getCurrentStockInches(fishes) + frySizeInches <= getTankCapacity()) {
+        const fry = createFry(species);
+        fishes.push(fry);
+        showFryToast(species.name);
+        breedTimers[species.name] = 0;
+    }
+}
+
+function showFryToast(speciesName) {
+    const toast = document.createElement('div');
+    toast.className = 'fry-toast';
+    toast.textContent = `A ${speciesName} fry was born!`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('fry-toast-out');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 2500);
+}
+
 // --- Game loop ---
 function update(dt) {
     gameTime += dt;
@@ -231,6 +313,9 @@ function update(dt) {
     const totalHappiness = fishes.reduce((s, f) => s + f.happiness, 0);
     const interacting = (Date.now() - lastInteractionTime) < 3000;
     updateSwishMeter(dt, totalHappiness, interacting);
+
+    // Breeding
+    updateBreeding(dt);
 
     // Auto-save
     if (shouldAutoSave()) {
@@ -383,6 +468,7 @@ function getSaveState() {
         fish: fishes.map(f => f.serialize()),
         tank: saveTankState(),
         progression: saveProgression(),
+        breedTimers: { ...breedTimers },
         settings: {
             freeFeed: getTank().freeFeed,
             showViewToggle: document.getElementById('toggle-show-view')?.checked ?? true,
@@ -406,6 +492,7 @@ function init() {
     if (saved) {
         loadTankState(saved.tank);
         loadProgression(saved.progression);
+        if (saved.breedTimers) breedTimers = { ...saved.breedTimers };
 
         if (saved.fish && saved.fish.length > 0) {
             for (const fd of saved.fish) {

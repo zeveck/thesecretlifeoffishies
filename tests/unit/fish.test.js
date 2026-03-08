@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Fish, SPECIES_CATALOG } from '../../js/fish.js';
+import { Fish, SPECIES_CATALOG, createFry } from '../../js/fish.js';
 import { loadTankState } from '../../js/tank.js';
 
 beforeEach(() => {
@@ -67,6 +67,20 @@ describe('SPECIES_CATALOG', () => {
         const withGlow = SPECIES_CATALOG.filter(s => s.glowStripe);
         expect(withGlow).toHaveLength(1);
         expect(withGlow[0].name).toBe('Neon Tetra');
+    });
+
+    it('marks Guppy, Platy, Molly, Swordtail as live bearers', () => {
+        const liveBearers = SPECIES_CATALOG.filter(s => s.liveBearer);
+        const names = liveBearers.map(s => s.name).sort();
+        expect(names).toEqual(['Guppy', 'Molly', 'Platy', 'Swordtail']);
+    });
+
+    it('non-live-bearer species do not have liveBearer flag', () => {
+        const nonLiveBearers = SPECIES_CATALOG.filter(s => !s.liveBearer);
+        expect(nonLiveBearers.length).toBe(10);
+        for (const s of nonLiveBearers) {
+            expect(s.liveBearer).toBeFalsy();
+        }
     });
 });
 
@@ -322,5 +336,124 @@ describe('Fish speed', () => {
         const species = SPECIES_CATALOG.find(s => s.name === 'Danio');
         const fish = new Fish(species);
         expect(fish.speed).toBe(70); // Danio speed
+    });
+});
+
+describe('Fish fry properties', () => {
+    it('constructor defaults isFry to false and fryAge to 0', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fish = new Fish(species);
+        expect(fish.isFry).toBe(false);
+        expect(fish.fryAge).toBe(0);
+    });
+});
+
+describe('createFry', () => {
+    it('creates a fry with isFry=true and 20% size', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fry = createFry(species);
+        expect(fry.isFry).toBe(true);
+        expect(fry.fryAge).toBe(0);
+        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
+        expect(fry.name).toBe('Guppy Fry');
+    });
+
+    it('creates fry for each live bearer species', () => {
+        for (const species of SPECIES_CATALOG.filter(s => s.liveBearer)) {
+            const fry = createFry(species);
+            expect(fry.isFry).toBe(true);
+            expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
+            expect(fry.name).toBe(`${species.name} Fry`);
+        }
+    });
+});
+
+describe('Fry growth', () => {
+    it('fry grows from 20% to 60% over 86400s', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Molly');
+        const fry = createFry(species);
+
+        // At start: 20% of max
+        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.2);
+
+        // Simulate half growth (43200s)
+        fry.update(43200);
+        expect(fry.isFry).toBe(true);
+        expect(fry.currentSize).toBeCloseTo(
+            species.sizeInches * 0.2 + (species.sizeInches * 0.4) * 0.5,
+            1
+        );
+
+        // Simulate remaining growth
+        fry.update(43200);
+        expect(fry.isFry).toBe(false);
+        expect(fry.currentSize).toBeCloseTo(species.sizeInches * 0.6, 1);
+    });
+
+    it('fry clears isFry flag after 86400s', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fry = createFry(species);
+        fry.update(86400);
+        expect(fry.isFry).toBe(false);
+    });
+
+    it('normal fish do not grow when fry (isFry blocks normal growth)', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Platy');
+        const fry = createFry(species);
+        fry.hunger = 0; // well-fed
+        fry.strength = 100;
+        const sizeAfterSmallDt = fry.currentSize;
+        fry.update(1);
+        // Size should be determined by fry growth formula, not normal growth
+        const expectedSize = species.sizeInches * 0.2 + (species.sizeInches * 0.4) * (1 / 86400);
+        expect(fry.currentSize).toBeCloseTo(expectedSize, 4);
+    });
+});
+
+describe('Fry serialize / deserialize', () => {
+    it('serializes fry fields', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Swordtail');
+        const fry = createFry(species);
+        fry.fryAge = 1000;
+        const data = fry.serialize();
+        expect(data.isFry).toBe(true);
+        expect(data.fryAge).toBe(1000);
+    });
+
+    it('deserializes fry fields', () => {
+        const data = {
+            speciesName: 'Guppy',
+            name: 'Guppy Fry',
+            isFry: true,
+            fryAge: 43200,
+        };
+        const fish = Fish.deserialize(data);
+        expect(fish.isFry).toBe(true);
+        expect(fish.fryAge).toBe(43200);
+        // Size should be at 50% growth (between 20% and 60%)
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const expectedSize = species.sizeInches * 0.2 + (species.sizeInches * 0.4) * 0.5;
+        expect(fish.currentSize).toBeCloseTo(expectedSize, 2);
+    });
+
+    it('roundtrips fry serialize -> deserialize', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Molly');
+        const fry = createFry(species);
+        fry.fryAge = 20000;
+        // Update size to match fryAge
+        fry.update(0);
+
+        const data = fry.serialize();
+        const restored = Fish.deserialize(data);
+        expect(restored.isFry).toBe(true);
+        expect(restored.fryAge).toBe(20000);
+        expect(restored.currentSize).toBeCloseTo(fry.currentSize, 2);
+    });
+
+    it('defaults isFry to false for old saves without fry fields', () => {
+        const data = { speciesName: 'Guppy' };
+        const fish = Fish.deserialize(data);
+        expect(fish.isFry).toBe(false);
+        expect(fish.fryAge).toBe(0);
     });
 });

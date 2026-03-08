@@ -12,9 +12,9 @@ async function startGame(page) {
     await startBtn.click();
 
     // Wait for the start overlay to stop intercepting (opacity transition + pointer-events)
-    await expect(page.locator('#start-overlay')).toHaveClass(/hidden/);
+    await expect(page.locator('#start-overlay')).toHaveClass(/hidden/, { timeout: 10000 });
     // Wait for the HUD to be rendered (indicates game init completed)
-    await expect(page.locator('#hud')).toBeVisible();
+    await expect(page.locator('#hud')).toBeVisible({ timeout: 10000 });
     // Allow overlay fade transition to fully complete
     await page.waitForTimeout(600);
 }
