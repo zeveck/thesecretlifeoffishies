@@ -17,7 +17,9 @@ const PRECACHE_URLS = [
     'js/decorations.js',
     'js/food.js',
     'js/save.js',
-    'js/utils.js'
+    'js/utils.js',
+    'js/audio.js',
+    'js/shadowfish.js'
 ];
 
 // Install: precache app shell

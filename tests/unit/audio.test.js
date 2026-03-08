@@ -5,6 +5,7 @@ import {
     getSfxVolume, setSfxVolume,
     getMusicVolume, setMusicVolume,
     loadAudioSettings, saveAudioSettings,
+    isMusicMuted, toggleMusicMute,
 } from '../../js/audio.js';
 
 function assertCloseTo(actual, expected, precision = 5) {
@@ -18,6 +19,8 @@ beforeEach(() => {
     setMasterVolume(0.7);
     setSfxVolume(0.8);
     setMusicVolume(0.5);
+    // Reset mute state
+    if (isMusicMuted()) toggleMusicMute();
 });
 
 describe('volume getters/setters', () => {
@@ -99,6 +102,7 @@ describe('saveAudioSettings', () => {
             masterVolume: 0.5,
             sfxVolume: 0.6,
             musicVolume: 0.7,
+            musicMuted: false,
         });
     });
 
@@ -107,6 +111,13 @@ describe('saveAudioSettings', () => {
         assertCloseTo(saved.masterVolume, 0.7);
         assertCloseTo(saved.sfxVolume, 0.8);
         assertCloseTo(saved.musicVolume, 0.5);
+        assert.strictEqual(saved.musicMuted, false);
+    });
+
+    it('saves muted state', () => {
+        toggleMusicMute();
+        const saved = saveAudioSettings();
+        assert.strictEqual(saved.musicMuted, true);
     });
 });
 
@@ -150,22 +161,55 @@ describe('loadAudioSettings', () => {
     });
 });
 
+describe('music mute toggle', () => {
+    it('starts unmuted', () => {
+        assert.strictEqual(isMusicMuted(), false);
+    });
+
+    it('toggleMusicMute toggles state', () => {
+        const result = toggleMusicMute();
+        assert.strictEqual(result, true);
+        assert.strictEqual(isMusicMuted(), true);
+    });
+
+    it('toggleMusicMute toggles back', () => {
+        toggleMusicMute(); // mute
+        const result = toggleMusicMute(); // unmute
+        assert.strictEqual(result, false);
+        assert.strictEqual(isMusicMuted(), false);
+    });
+
+    it('loadAudioSettings restores muted state', () => {
+        loadAudioSettings({ musicMuted: true });
+        assert.strictEqual(isMusicMuted(), true);
+    });
+
+    it('loadAudioSettings without musicMuted keeps current state', () => {
+        toggleMusicMute(); // mute
+        loadAudioSettings({ masterVolume: 0.5 });
+        assert.strictEqual(isMusicMuted(), true);
+    });
+});
+
 describe('save/load round-trip', () => {
     it('preserves values through save and load', () => {
         setMasterVolume(0.42);
         setSfxVolume(0.15);
         setMusicVolume(0.99);
+        toggleMusicMute();
         const saved = saveAudioSettings();
 
         // Reset to different values
         setMasterVolume(0);
         setSfxVolume(0);
         setMusicVolume(0);
+        toggleMusicMute(); // unmute
 
         // Load saved state
         loadAudioSettings(saved);
         assertCloseTo(getMasterVolume(), 0.42);
         assertCloseTo(getSfxVolume(), 0.15);
         assertCloseTo(getMusicVolume(), 0.99);
+        assert.strictEqual(isMusicMuted(), true);
     });
 });

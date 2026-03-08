@@ -1,4 +1,4 @@
-// audio.js — Web Audio synthesized sounds and volume controls
+// audio.js — Web Audio synthesized sounds, music playback, and volume controls
 
 let audioCtx = null;
 
@@ -6,6 +6,17 @@ let audioCtx = null;
 let masterVolume = 0.7;
 let sfxVolume = 0.8;
 let musicVolume = 0.5;
+let musicMuted = false;
+
+// Music playback state
+const MUSIC_TRACKS = [
+    'music/00 - Aquarium Afternoon.mp3',
+    'music/01 - Aquarium Afternoon2.mp3',
+    'music/02 - Glass Tides.mp3',
+];
+let musicAudio = null;   // current HTMLAudioElement
+let currentTrack = 0;
+let musicStarted = false;
 
 export function initAudio() {
     if (audioCtx) return;
@@ -104,21 +115,69 @@ export function playRevealStinger() {
     }
 }
 
+// --- Music playback ---
+
+function applyMusicVolume() {
+    if (!musicAudio) return;
+    musicAudio.volume = musicMuted ? 0 : masterVolume * musicVolume;
+}
+
+function playTrack(index) {
+    try {
+        if (musicAudio) {
+            musicAudio.pause();
+            musicAudio.removeEventListener('ended', onTrackEnded);
+        }
+        currentTrack = index % MUSIC_TRACKS.length;
+        musicAudio = new Audio(MUSIC_TRACKS[currentTrack]);
+        musicAudio.addEventListener('ended', onTrackEnded);
+        applyMusicVolume();
+        musicAudio.play().catch(() => { /* autoplay blocked */ });
+    } catch (e) {
+        // Audio not supported in this environment
+    }
+}
+
+function onTrackEnded() {
+    playTrack(currentTrack + 1);
+}
+
+export function startMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    playTrack(0);
+}
+
+export function isMusicMuted() { return musicMuted; }
+
+export function toggleMusicMute() {
+    musicMuted = !musicMuted;
+    applyMusicVolume();
+    return musicMuted;
+}
+
 // Getters / setters
 export function getMasterVolume() { return masterVolume; }
-export function setMasterVolume(v) { masterVolume = Math.max(0, Math.min(1, v)); }
+export function setMasterVolume(v) {
+    masterVolume = Math.max(0, Math.min(1, v));
+    applyMusicVolume();
+}
 export function getSfxVolume() { return sfxVolume; }
 export function setSfxVolume(v) { sfxVolume = Math.max(0, Math.min(1, v)); }
 export function getMusicVolume() { return musicVolume; }
-export function setMusicVolume(v) { musicVolume = Math.max(0, Math.min(1, v)); }
+export function setMusicVolume(v) {
+    musicVolume = Math.max(0, Math.min(1, v));
+    applyMusicVolume();
+}
 
 export function loadAudioSettings(settings) {
     if (!settings) return;
     if (settings.masterVolume !== undefined) setMasterVolume(settings.masterVolume);
     if (settings.sfxVolume !== undefined) setSfxVolume(settings.sfxVolume);
     if (settings.musicVolume !== undefined) setMusicVolume(settings.musicVolume);
+    if (settings.musicMuted !== undefined) musicMuted = settings.musicMuted;
 }
 
 export function saveAudioSettings() {
-    return { masterVolume, sfxVolume, musicVolume };
+    return { masterVolume, sfxVolume, musicVolume, musicMuted };
 }

@@ -9,7 +9,7 @@ import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, draw
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
 import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
-import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings } from './audio.js';
+import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings, startMusic, toggleMusicMute, isMusicMuted } from './audio.js';
 import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront, getRainbowGlowActive } from './shadowfish.js';
 import { clamp, dist, rand } from './utils.js';
 
@@ -668,6 +668,17 @@ function init() {
             e.preventDefault();
             toggleView();
         }
+    });
+
+    // Music
+    initAudio();
+    audioInitialized = true;
+    startMusic();
+    const musicBtn = document.getElementById('music-btn');
+    if (isMusicMuted()) musicBtn.classList.add('muted');
+    musicBtn.addEventListener('click', () => {
+        const muted = toggleMusicMute();
+        musicBtn.classList.toggle('muted', muted);
     });
 
     // Start game loop

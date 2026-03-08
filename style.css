@@ -49,7 +49,7 @@ canvas#tank {
 }
 #view-toggle-btn:active { background: rgba(0,0,0,0.5); }
 #view-toggle-btn.hidden { display: none; }
-#hud-top-right { position: absolute; top: 18px; right: 18px; }
+#hud-top-right { position: absolute; top: 18px; right: 18px; display: flex; gap: 8px; align-items: center; }
 #hud-bottom {
     position: absolute; bottom: 14px; left: 18px; right: 18px;
     display: flex; flex-direction: column; gap: 4px;
@@ -102,6 +102,23 @@ canvas#tank {
     border-radius: 8px; cursor: pointer; line-height: 1;
 }
 #menu-btn:active { background: rgba(0,0,0,0.5); }
+
+#music-btn {
+    background: rgba(0,0,0,0.3); border: none; color: #cde;
+    font-size: 1.2rem; width: 36px; height: 36px;
+    border-radius: 8px; cursor: pointer; line-height: 1;
+    position: relative;
+}
+#music-btn:active { background: rgba(0,0,0,0.5); }
+#music-btn.muted { opacity: 0.4; }
+#music-btn.muted::after {
+    content: ''; position: absolute;
+    top: 50%; left: 50%;
+    width: 28px; height: 2px;
+    background: #f66;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    pointer-events: none;
+}
 
 #xp-bar-container {
     flex: 1; height: 4px; background: rgba(255,255,255,0.1);

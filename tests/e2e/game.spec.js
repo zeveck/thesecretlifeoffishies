@@ -9,27 +9,17 @@ async function startGame(page) {
     // Wait for the start overlay to appear (module script is deferred)
     const startBtn = page.locator('#start-btn');
     await startBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await startBtn.click();
+    await startBtn.click({ timeout: 5000 });
 
-    // Wait for the start overlay to stop intercepting (opacity transition + pointer-events)
-    await expect(page.locator('#start-overlay')).toHaveClass(/hidden/, { timeout: 10000 });
+    // Wait for the start overlay to get hidden class (init runs after click)
+    await expect(page.locator('#start-overlay')).toHaveClass(/hidden/, { timeout: 15000 });
     // Wait for the HUD to be rendered (indicates game init completed)
     await expect(page.locator('#hud')).toBeVisible({ timeout: 10000 });
-    // Wait until overlay no longer intercepts pointer events
-    await page.locator('#start-overlay').evaluate(el => {
-        return new Promise(resolve => {
-            const timeout = setTimeout(resolve, 1000);
-            const check = () => {
-                if (getComputedStyle(el).pointerEvents === 'none') {
-                    clearTimeout(timeout);
-                    resolve();
-                } else {
-                    requestAnimationFrame(check);
-                }
-            };
-            check();
-        });
-    });
+    // Wait for the CSS opacity transition (0.5s) and pointer-events to take effect
+    await page.waitForFunction(() => {
+        const el = document.getElementById('start-overlay');
+        return el && getComputedStyle(el).pointerEvents === 'none';
+    }, { timeout: 5000 });
 }
 
 // --- Drawer Tests ---
@@ -601,5 +591,25 @@ test.describe('Share', () => {
         await page.locator('#menu-btn').click();
 
         await expect(page.locator('#btn-share')).not.toBeVisible();
+    });
+});
+
+// --- Music Button ---
+test.describe('Music', () => {
+    test('music button is visible in HUD', async ({ page }) => {
+        await startGame(page);
+        await expect(page.locator('#music-btn')).toBeVisible();
+    });
+
+    test('music button toggles muted class on click', async ({ page }) => {
+        await startGame(page);
+        const btn = page.locator('#music-btn');
+        await expect(btn).not.toHaveClass(/muted/);
+
+        await btn.click();
+        await expect(btn).toHaveClass(/muted/);
+
+        await btn.click();
+        await expect(btn).not.toHaveClass(/muted/);
     });
 });
