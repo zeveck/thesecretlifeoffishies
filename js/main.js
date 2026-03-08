@@ -60,6 +60,7 @@ canvas.addEventListener('pointerdown', (e) => {
     }
     if (isDrawerOpen()) return;
     pointerDown = true;
+    pointerHoldStart = Date.now();
     pointerX = e.clientX;
     pointerY = e.clientY;
     longPressStartX = e.clientX;
@@ -156,13 +157,17 @@ function handleTap(px, py) {
                 addFood(fx, fz);
                 addXP(1);
             } else {
-                // No food — tap the surface: ripple + slow attract
+                // No food — tap the surface: ripple + nearby fish investigate
                 addRipple(fx, fz);
                 for (const fish of fishes) {
                     if (fish.state === 'eating' || fish.state === 'seeking_food') continue;
-                    fish.wanderTarget = { x: fx, y: fish.y, z: fz };
-                    fish.state = 'wandering';
-                    fish.stateTimer = rand(2, 4);
+                    const dx = fx - fish.x;
+                    const dz = fz - (fish.z || 50);
+                    if (dx * dx + dz * dz < 1600) { // within ~40 units
+                        fish.wanderTarget = { x: fx, y: fish.y, z: fz };
+                        fish.state = 'wandering';
+                        fish.stateTimer = rand(2, 4);
+                    }
                 }
             }
         }
@@ -220,11 +225,19 @@ function handleTap(px, py) {
     }
 }
 
-// Finger follow for side view
+// Finger follow for side view — only after sustained hold, not on taps or decoration drags
+let pointerHoldStart = 0;
+const HOLD_THRESHOLD = 400; // ms before fish start following
+
 function updateFingerFollow() {
     if (!pointerDown || getViewAngle() > 0.8) return;
+    if (draggingDeco !== null) return;
 
-    const followRadius = Math.max(150, tankW * 0.2);
+    // Only attract fish after a sustained hold
+    const held = Date.now() - pointerHoldStart;
+    if (held < HOLD_THRESHOLD) return;
+
+    const followRadius = Math.max(100, tankW * 0.12);
     const targetX = ((pointerX - tankLeft) / tankW) * 100;
     const targetY = ((pointerY - tankTop) / tankH) * 100;
     for (const fish of fishes) {
