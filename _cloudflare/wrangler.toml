@@ -1,0 +1,10 @@
+name = "fishies-live"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://thesecretlifeoffishies.com"
+
+[[kv_namespaces]]
+binding = "LIVE_TANKS"
+id = "7efda713b3704dbe8ad333ba67a63cca"

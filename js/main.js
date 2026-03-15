@@ -7,11 +7,12 @@ import { getProgression, addXP, addCoins, loadProgression, saveProgression, appl
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
 import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, addBreedHeart, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
-import { initUI, updateHUD, isDrawerOpen, decodeTankState, updateFloatingTip } from './ui.js';
+import { initUI, updateHUD, isDrawerOpen, updateFloatingTip, setVisitMode as setUIVisitMode } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings, startMusic, toggleMusicMute, isMusicMuted } from './audio.js';
 import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront, getRainbowGlowActive } from './shadowfish.js';
 import { clamp, dist, rand } from './utils.js';
+import { isLiveSharing, startPushInterval, stopPushInterval, fetchSharedTank, addBookmark } from './live.js';
 
 // --- State ---
 const canvas = document.getElementById('tank');
@@ -23,6 +24,10 @@ let breedTimers = {};
 // Easter egg: track rapid boops between same-species live bearers
 let easterEggBoops = {}; // { speciesName: { count, firstBoopTime } }
 let rainbowBonusApplied = false;
+let visitMode = false;
+let savedStateBeforeVisit = null; // captured before entering visit mode
+let gameLoopRunning = false;
+let initDone = false;
 
 // Tank display bounds (in pixels)
 let tankLeft, tankTop, tankW, tankH;
@@ -385,6 +390,13 @@ function showFryToast(speciesName) {
 function update(dt) {
     gameTime += dt;
 
+    if (visitMode) {
+        updateOrientation();
+        updateEffects(dt);
+        for (const fish of fishes) fish.updateVisitMode(dt);
+        return;
+    }
+
     updateOrientation();
     updateEffects(dt);
     updateFood(dt, 92); // floor at 92% of tank height
@@ -560,6 +572,125 @@ function drawFishLabels(ctx) {
     }
 }
 
+// --- Visit mode ---
+function showVisitOverlay(data, code) {
+    const overlay = document.getElementById('visit-overlay');
+    const speciesList = data.fish.map(f => f.name || f.speciesName).join(', ');
+    document.getElementById('visit-info').textContent = `Level ${data.level} tank with ${data.fish.length} fish`;
+    document.getElementById('visit-fish-list').textContent = speciesList;
+    document.getElementById('visit-fish-list').style.fontSize = '0.8rem';
+    document.getElementById('visit-fish-list').style.opacity = '0.6';
+    overlay.classList.remove('hidden');
+
+    document.getElementById('visit-watch-btn').onclick = () => {
+        overlay.classList.add('hidden');
+        enterVisitMode(data, code);
+    };
+    document.getElementById('visit-dismiss-btn').onclick = () => {
+        overlay.classList.add('hidden');
+        normalStartup();
+    };
+}
+
+function enterVisitMode(data, code) {
+    // Capture current save state before overwriting fishes array
+    if (initDone) {
+        savedStateBeforeVisit = getSaveState();
+    }
+
+    visitMode = true;
+    setUIVisitMode(true);
+    stopPushInterval(); // Pause live share push so it doesn't send visited tank data
+    fishes.length = 0;
+
+    // Create visitor fish
+    for (const fd of data.fish) {
+        const fish = Fish.createVisitor(fd);
+        if (fish) fishes.push(fish);
+    }
+
+    // Always reset tank state for visit (prevents showing owner's decorations)
+    loadTankState({
+        ammonia: 0, nitrite: 0, nitrate: 0,
+        bacteria: 5, algae: 0, freeFeed: false,
+        gallons: data.gallons || 10, capacityInches: 5,
+        decorations: data.decorations || [],
+    });
+
+    // Clear hash to prevent re-triggering on reload
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    // Hide HUD, show visit banner
+    document.getElementById('hud').classList.add('hidden');
+    const banner = document.getElementById('visit-banner');
+    document.getElementById('visit-banner-text').textContent =
+        `Visiting a Level ${data.level} tank with ${data.fish.length} fish`;
+    banner.classList.remove('hidden');
+
+    document.getElementById('visit-back-btn').onclick = () => exitVisitMode();
+
+    // Add bookmark
+    const label = `Lv${data.level} (${data.fish.length} fish)`;
+    addBookmark(code, label);
+
+    // Start game loop if not already running
+    if (!gameLoopRunning) {
+        gameLoopRunning = true;
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function exitVisitMode() {
+    visitMode = false;
+    setUIVisitMode(false);
+    fishes.length = 0;
+    document.getElementById('visit-banner').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+
+    // If we already ran init() before visiting, restore from captured state
+    if (initDone && savedStateBeforeVisit) {
+        const saved = savedStateBeforeVisit;
+        savedStateBeforeVisit = null;
+
+        // Restore tank state
+        if (saved.tank) loadTankState(saved.tank);
+
+        // Restore fish
+        if (saved.fish) {
+            for (const fd of saved.fish) {
+                const fish = Fish.deserialize(fd);
+                if (fish) fishes.push(fish);
+            }
+        }
+
+        // Restore breed timers
+        if (saved.breedTimers) breedTimers = { ...saved.breedTimers };
+
+        // Update UI with restored data
+        updateHUD();
+
+        // Resume live share push if active
+        if (isLiveSharing()) startPushInterval(getSaveState);
+    } else {
+        // First visit before init — do normal startup
+        normalStartup();
+    }
+}
+
+function normalStartup() {
+    if (hasSave()) {
+        requestOrientationPermission().then(() => init());
+    } else {
+        document.getElementById('start-overlay').classList.remove('hidden');
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            await requestOrientationPermission();
+            document.getElementById('start-overlay').classList.add('hidden');
+            init();
+        });
+    }
+}
+
 // Fixed timestep update, variable render
 const TICK = 1 / 60;
 let accumulator = 0;
@@ -580,6 +711,10 @@ function gameLoop(timestamp) {
 
 // --- Save state ---
 function getSaveState() {
+    // During visit mode, return the captured state to prevent overwriting real save
+    if (visitMode && savedStateBeforeVisit) {
+        return savedStateBeforeVisit;
+    }
     return {
         fish: fishes.map(f => f.serialize()),
         tank: saveTankState(),
@@ -698,59 +833,41 @@ function init() {
         musicBtn.classList.toggle('muted', muted);
     });
 
-    // Start game loop
-    lastTime = performance.now();
-    requestAnimationFrame(gameLoop);
+    // Resume live share push if previously sharing
+    if (isLiveSharing()) startPushInterval(getSaveState);
 
+    // Start game loop (guard against double start)
+    if (!gameLoopRunning) {
+        gameLoopRunning = true;
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    initDone = true;
     updateHUD();
 }
 
-// --- Check for shared tank link ---
-const sharedParam = new URLSearchParams(window.location.search).get('s');
-let sharedHandled = false;
-if (sharedParam) {
-    const sharedState = decodeTankState(sharedParam);
-    if (sharedState) {
-        sharedHandled = true;
-        const overlay = document.getElementById('start-overlay');
-        const content = overlay.querySelector('.start-content');
-        const fishList = sharedState.fish.map(s => s.name).join(', ');
-        content.innerHTML = `
-            <h1>Shared Aquarium</h1>
-            <p>Level ${sharedState.level} tank with ${sharedState.fish.length} fish</p>
-            <p style="font-size:0.8rem;opacity:0.6;margin-bottom:1rem">${fishList}</p>
-            <button id="start-btn" style="padding:0.8rem 2rem;font-size:1.1rem;border:2px solid #4a9eff;background:rgba(74,158,255,0.15);color:#4a9eff;border-radius:2rem;cursor:pointer">Play Now!</button>
-        `;
-        overlay.classList.remove('hidden');
-        document.getElementById('start-btn').addEventListener('click', () => {
-            window.history.replaceState({}, '', window.location.pathname);
-            overlay.classList.add('hidden');
-            init();
-        });
-    }
+// --- Check for live tank link (#tank=CODE) ---
+const hashMatch = window.location.hash.match(/^#tank=([a-z0-9]{8})$/i);
+let startupHandled = false;
+
+if (hashMatch) {
+    startupHandled = true;
+    fetchSharedTank(hashMatch[1]).then(data => {
+        if (data) showVisitOverlay(data, hashMatch[1]);
+        else normalStartup();
+    }).catch(() => normalStartup());
 }
 
 // --- Start: skip overlay for returning players ---
-if (!sharedHandled) {
-    if (hasSave()) {
-        // Returning player — go straight into game
-        requestOrientationPermission().then(() => init());
-    } else {
-        // First time — show start overlay
-        document.getElementById('start-overlay').classList.remove('hidden');
-        document.getElementById('start-btn').addEventListener('click', async () => {
-            await requestOrientationPermission();
+if (!startupHandled) {
+    normalStartup();
+    // Also allow starting with any key on desktop
+    document.addEventListener('keydown', function startOnKey(e) {
+        if (!document.getElementById('start-overlay').classList.contains('hidden')) {
             document.getElementById('start-overlay').classList.add('hidden');
             init();
-        });
-
-        // Also allow starting with any key on desktop
-        document.addEventListener('keydown', function startOnKey(e) {
-            if (!document.getElementById('start-overlay').classList.contains('hidden')) {
-                document.getElementById('start-overlay').classList.add('hidden');
-                init();
-                document.removeEventListener('keydown', startOnKey);
-            }
-        });
-    }
+            document.removeEventListener('keydown', startOnKey);
+        }
+    });
 }

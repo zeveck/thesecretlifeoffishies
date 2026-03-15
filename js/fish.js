@@ -706,6 +706,55 @@ export class Fish {
     getSizePixels() {
         return this.currentSize * 20;
     }
+
+    // Visit mode: wandering AI only — no hunger/stats/food/leaving
+    updateVisitMode(dt) {
+        // Wandering AI
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) {
+            let tx, ty, tz;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                tx = rand(10, 90);
+                ty = rand(15, 85);
+                tz = rand(10, 90);
+                if (dist(this.x, this.z, tx, tz) >= 25) break;
+            }
+            this.wanderTarget = { x: tx, y: ty, z: tz };
+            this.stateTimer = rand(1.5, 3.5);
+        }
+        this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
+        const dy = this.wanderTarget.y - this.y;
+        this.targetPitch = clamp(dy * 0.06, -0.4, 0.4) + Math.sin(this.tailPhase * 0.3) * 0.1;
+
+        // Movement
+        this.heading = lerpAngle(this.heading, this.targetHeading, 5 * dt);
+        this.pitch = lerp(this.pitch, this.targetPitch, 5 * dt);
+        const spd = this.speed * 0.8 * 0.16 * dt;
+        this.x += Math.cos(this.heading) * Math.cos(this.pitch) * spd;
+        this.z += Math.sin(this.heading) * Math.cos(this.pitch) * spd;
+        this.y += Math.sin(this.pitch) * spd;
+
+        // Boundaries
+        this.x = clamp(this.x, 5, 95);
+        this.y = clamp(this.y, 5, 95);
+        this.z = clamp(this.z, 5, 95);
+
+        // Tail animation
+        this.tailPhase += 8 * dt;
+    }
+
+    static createVisitor(data) {
+        const species = SPECIES_CATALOG.find(s => s.name === data.speciesName);
+        if (!species) return null;
+        const fish = new Fish(species, rand(10, 90), rand(15, 85), rand(10, 90), data.name);
+        fish.currentSize = data.currentSize ?? species.sizeInches * 0.6;
+        fish.isFry = data.isFry ?? false;
+        fish.tailDots = data.tailDots ?? 0;
+        fish.happiness = 80;
+        fish.hunger = 0;
+        fish.strength = 100;
+        return fish;
+    }
 }
 
 export function createFry(species, parent1, parent2) {

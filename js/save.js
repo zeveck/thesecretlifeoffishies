@@ -15,6 +15,7 @@ export function saveGame(state) {
             fish: state.fish,
             tank: state.tank,
             progression: state.progression,
+            breedTimers: state.breedTimers,
             settings: state.settings,
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -52,6 +53,7 @@ export function exportSaveJSON(state) {
         fish: state.fish,
         tank: state.tank,
         progression: state.progression,
+        breedTimers: state.breedTimers,
         settings: state.settings,
     }, null, 2);
 }
@@ -76,7 +78,12 @@ export function shouldAutoSave() {
     return Date.now() - lastSaveTime >= SAVE_INTERVAL;
 }
 
+let autoSaveInitialized = false;
+
 export function initAutoSave(getSaveState) {
+    if (autoSaveInitialized) return;
+    autoSaveInitialized = true;
+
     // Save on visibility change
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

@@ -590,3 +590,98 @@ body.high-contrast .tab-panel h3 { color: #80a8c8; }
     color: #a06070;
 }
 
+/* Live Share tab */
+#live-share-section { margin-bottom: 16px; }
+#live-share-status { font-size: 0.82rem; color: #7898a8; margin-bottom: 10px; }
+#btn-live-toggle {
+    width: 100%; padding: 10px; border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+    margin-bottom: 10px; transition: all 0.2s;
+}
+#btn-live-toggle:active { background: rgba(74, 158, 255, 0.25); }
+#btn-live-toggle.active-share {
+    border-color: #ef5350; color: #ef5350;
+    background: rgba(239, 83, 80, 0.1);
+}
+#btn-live-toggle.active-share:active { background: rgba(239, 83, 80, 0.25); }
+#live-share-info { margin-top: 8px; }
+#live-share-info.hidden { display: none; }
+#live-share-code {
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
+    font-size: 1.3rem; color: #e0f0ff; letter-spacing: 0.15em;
+    background: rgba(255,255,255,0.06); padding: 8px 14px;
+    border-radius: 8px; text-align: center; margin-bottom: 8px;
+}
+#btn-copy-live-link {
+    width: 100%; padding: 8px; border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+}
+#btn-copy-live-link:active { background: rgba(74, 158, 255, 0.25); }
+
+/* Visit overlay */
+#visit-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 22, 40, 0.95);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; transition: opacity 0.5s;
+}
+#visit-overlay.hidden { opacity: 0; pointer-events: none; }
+#visit-watch-btn, #visit-dismiss-btn {
+    padding: 0.8rem 2rem; font-size: 1rem;
+    border: 2px solid #4a9eff; background: rgba(74, 158, 255, 0.15);
+    color: #4a9eff; border-radius: 2rem; cursor: pointer;
+    margin: 0.3rem; transition: background 0.2s;
+}
+#visit-watch-btn:active, #visit-dismiss-btn:active { background: rgba(74, 158, 255, 0.35); }
+#visit-dismiss-btn { border-color: #607888; color: #90b0c8; background: rgba(96, 120, 136, 0.1); }
+
+/* Visit banner */
+#visit-banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(10, 22, 40, 0.85);
+    color: #b0d4f1; font-size: 0.85rem;
+    padding: 10px 16px; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+}
+#visit-banner.hidden { display: none; }
+#visit-back-btn {
+    padding: 6px 14px; border: 1px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1); color: #4a9eff;
+    border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+}
+#visit-back-btn:active { background: rgba(74, 158, 255, 0.25); }
+
+/* Bookmark cards */
+.bookmark-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.04); border-radius: 8px;
+}
+.bookmark-info { flex: 1; min-width: 0; }
+.bookmark-code {
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
+    font-size: 0.85rem; color: #c0d8e8; letter-spacing: 0.1em;
+}
+.bookmark-label { font-size: 0.72rem; color: #607888; margin-top: 2px; }
+.bookmark-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.bookmark-visit, .bookmark-remove {
+    padding: 5px 10px; border-radius: 6px;
+    font-size: 0.72rem; cursor: pointer; border: 1px solid;
+}
+.bookmark-visit {
+    border-color: #4a9eff; color: #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+}
+.bookmark-visit:active { background: rgba(74, 158, 255, 0.25); }
+.bookmark-remove {
+    border-color: #607888; color: #708898;
+    background: rgba(96, 120, 136, 0.05);
+}
+.bookmark-remove:active { background: rgba(96, 120, 136, 0.15); }
+
+/* HUD hidden state for visit mode */
+#hud.hidden { display: none; }
+

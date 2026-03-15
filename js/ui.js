@@ -10,6 +10,7 @@ import { SPECIES_CATALOG, Fish } from './fish.js';
 import { clamp } from './utils.js';
 import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
 import { getMasterVolume, setMasterVolume, getSfxVolume, setSfxVolume, getMusicVolume, setMusicVolume } from './audio.js';
+import { isLiveSharing, getLiveCode, startLiveShare, stopLiveShare, getBookmarks, removeBookmark } from './live.js';
 
 const FISH_TIPS = [
     { tip: "Goldfish can remember things for months -- the 3-second memory myth is totally false.", source: "https://www.livescience.com/goldfish-memory.html" },
@@ -36,6 +37,7 @@ let tipTimer = 0;
 let tipShownFirst = false;
 
 let drawerOpen = false;
+let isVisitMode = false;
 let onAddFish = null; // callback
 let fishesRef = null;  // reference to fish array
 let getSaveStateRef = null; // callback to get current save state
@@ -64,6 +66,7 @@ export function initUI(fishes, addFishCallback, getSaveState, getBreedTimers) {
             document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
             if (tab.dataset.tab === 'store') refreshStore();
             if (tab.dataset.tab === 'fish') refreshMyFish();
+            if (tab.dataset.tab === 'shared') refreshSharedTab();
         });
     });
 
@@ -175,6 +178,10 @@ function closeDrawer() {
 
 export function isDrawerOpen() {
     return drawerOpen;
+}
+
+export function setVisitMode(val) {
+    isVisitMode = val;
 }
 
 function openConfigDialog() {
@@ -616,10 +623,10 @@ async function shareTank(buttonEl) {
     }
     text += `😊 Happiness: ${avgHappiness}%\n`;
 
-    // Encode state for shareable link
-    const encoded = encodeTankState(prog.level, fishesRef);
-    const url = encoded
-        ? `https://thesecretlifeoffishies.com?s=${encoded}`
+    // Use live share link if active, otherwise just the base URL
+    const liveCode = getLiveCode();
+    const url = liveCode
+        ? `https://thesecretlifeoffishies.com#tank=${liveCode}`
         : 'https://thesecretlifeoffishies.com';
     text += `\n${url}`;
 
@@ -653,79 +660,6 @@ function showShareFeedback(buttonEl, message) {
     const original = buttonEl.textContent;
     buttonEl.textContent = `✓ ${message}`;
     setTimeout(() => { buttonEl.textContent = original; }, 2000);
-}
-
-// Phase 3: State encoding for shareable links
-// Encodes level + up to 14 fish species (by catalog index) into base36
-function encodeTankState(level, fishes) {
-    try {
-        const catalogSize = SPECIES_CATALOG.length;
-        // Pack: level (3 bits) + fish count (4 bits) + species indices (4 bits each)
-        let value = BigInt(level & 0x7);
-        const fishList = fishes.slice(0, 14);
-        value = (value << 4n) | BigInt(fishList.length & 0xF);
-        for (const fish of fishList) {
-            const idx = SPECIES_CATALOG.indexOf(fish.species);
-            value = (value << 4n) | BigInt(idx >= 0 ? idx : 0);
-        }
-        // Checksum (sum of all nibbles mod 16)
-        let checksum = 0;
-        checksum += level;
-        checksum += fishList.length;
-        for (const fish of fishList) {
-            const idx = SPECIES_CATALOG.indexOf(fish.species);
-            checksum += idx >= 0 ? idx : 0;
-        }
-        value = (value << 4n) | BigInt(checksum & 0xF);
-        return value.toString(36);
-    } catch (e) {
-        return null;
-    }
-}
-
-export function decodeTankState(encoded) {
-    try {
-        let value = BigInt(parseInt(encoded, 36));
-        // Read checksum (last 4 bits)
-        const checksum = Number(value & 0xFn);
-        value >>= 4n;
-
-        // We need to read from MSB, but we packed LSB-last
-        // Re-parse: convert back to figure out bit length
-        // Easier: re-encode from the string
-        // Actually, let's unpack from the right (reverse order)
-        const nibbles = [];
-        let temp = value;
-        while (temp > 0n) {
-            nibbles.push(Number(temp & 0xFn));
-            temp >>= 4n;
-        }
-        nibbles.reverse();
-
-        if (nibbles.length < 2) return null;
-        const level = nibbles[0];
-        const fishCount = nibbles[1];
-        if (fishCount > 14 || level < 1 || level > 7) return null;
-        if (nibbles.length < 2 + fishCount) return null;
-
-        const speciesIndices = [];
-        let sum = level + fishCount;
-        for (let i = 0; i < fishCount; i++) {
-            const idx = nibbles[2 + i];
-            if (idx >= SPECIES_CATALOG.length) return null;
-            speciesIndices.push(idx);
-            sum += idx;
-        }
-
-        if ((sum & 0xF) !== checksum) return null;
-
-        return {
-            level,
-            fish: speciesIndices.map(i => SPECIES_CATALOG[i])
-        };
-    } catch (e) {
-        return null;
-    }
 }
 
 function showPurchaseDialog(species, cost, onConfirm) {
@@ -830,6 +764,115 @@ function showFoodBuyAnimation(btnEl) {
         pelletEl.classList.add('pellet-pulse');
         pelletPulseTimer = setTimeout(() => pelletEl.classList.remove('pellet-pulse'), 500);
     };
+}
+
+function refreshSharedTab() {
+    const toggleBtn = document.getElementById('btn-live-toggle');
+    const statusEl = document.getElementById('live-share-status');
+    const infoEl = document.getElementById('live-share-info');
+    const codeEl = document.getElementById('live-share-code');
+
+    if (isLiveSharing()) {
+        const code = getLiveCode();
+        toggleBtn.textContent = 'Stop Live Share';
+        toggleBtn.classList.add('active-share');
+        statusEl.textContent = 'Your tank is being shared live!';
+        codeEl.textContent = code;
+        infoEl.classList.remove('hidden');
+
+        // Wire stop
+        toggleBtn.onclick = () => {
+            stopLiveShare();
+            refreshSharedTab();
+        };
+
+        // Wire copy link
+        document.getElementById('btn-copy-live-link').onclick = async () => {
+            const link = `https://thesecretlifeoffishies.com#tank=${code}`;
+            try {
+                await navigator.clipboard.writeText(link);
+                const btn = document.getElementById('btn-copy-live-link');
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = orig; }, 2000);
+            } catch {
+                // Fallback — do nothing
+            }
+        };
+    } else {
+        toggleBtn.textContent = 'Start Live Share';
+        toggleBtn.classList.remove('active-share');
+        statusEl.textContent = 'Share your tank so friends can watch your fish!';
+        infoEl.classList.add('hidden');
+
+        // Wire start
+        toggleBtn.onclick = async () => {
+            toggleBtn.textContent = 'Starting...';
+            toggleBtn.disabled = true;
+            try {
+                await startLiveShare(getSaveStateRef);
+                refreshSharedTab();
+            } catch {
+                statusEl.textContent = 'Failed to start. Try again later.';
+                toggleBtn.textContent = 'Start Live Share';
+            } finally {
+                toggleBtn.disabled = false;
+            }
+        };
+    }
+
+    refreshBookmarkList();
+}
+
+function refreshBookmarkList() {
+    const list = document.getElementById('bookmark-list');
+    if (!list) return;
+    const bookmarks = getBookmarks();
+    list.innerHTML = '';
+
+    if (bookmarks.length === 0) {
+        list.innerHTML = '<div style="font-size:0.78rem;color:#607888;padding:8px 0">No visited tanks yet.</div>';
+        return;
+    }
+
+    for (const bm of bookmarks) {
+        const card = document.createElement('div');
+        card.className = 'bookmark-card';
+
+        const info = document.createElement('div');
+        info.className = 'bookmark-info';
+        const codeEl = document.createElement('div');
+        codeEl.className = 'bookmark-code';
+        codeEl.textContent = bm.code;
+        const labelEl = document.createElement('div');
+        labelEl.className = 'bookmark-label';
+        labelEl.textContent = bm.label || '';
+        info.appendChild(codeEl);
+        info.appendChild(labelEl);
+
+        const actions = document.createElement('div');
+        actions.className = 'bookmark-actions';
+        const visitBtn = document.createElement('button');
+        visitBtn.className = 'bookmark-visit';
+        visitBtn.textContent = 'Visit';
+        visitBtn.addEventListener('click', () => {
+            window.location.hash = `tank=${bm.code}`;
+            window.location.reload();
+        });
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'bookmark-remove';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+            removeBookmark(bm.code);
+            refreshBookmarkList();
+        });
+        actions.appendChild(visitBtn);
+        actions.appendChild(removeBtn);
+
+        card.appendChild(info);
+        card.appendChild(actions);
+        list.appendChild(card);
+    }
 }
 
 function drawConfirmFish() {

@@ -535,3 +535,109 @@ describe('tailDots', () => {
         assert.strictEqual(fry.tailDots, 0);
     });
 });
+
+describe('Fish.createVisitor', () => {
+    it('creates a visitor fish from minimal data', () => {
+        const visitor = Fish.createVisitor({
+            speciesName: 'Neon Tetra',
+            name: 'Zippy',
+            currentSize: 0.8,
+            isFry: false,
+            tailDots: 0,
+        });
+        assert.notStrictEqual(visitor, null);
+        assert.strictEqual(visitor.species.name, 'Neon Tetra');
+        assert.strictEqual(visitor.name, 'Zippy');
+        assert.strictEqual(visitor.currentSize, 0.8);
+        assert.strictEqual(visitor.isFry, false);
+        assert.strictEqual(visitor.tailDots, 0);
+    });
+
+    it('sets happy defaults', () => {
+        const visitor = Fish.createVisitor({ speciesName: 'Guppy' });
+        assert.strictEqual(visitor.happiness, 80);
+        assert.strictEqual(visitor.hunger, 0);
+        assert.strictEqual(visitor.strength, 100);
+    });
+
+    it('returns null for unknown species', () => {
+        const visitor = Fish.createVisitor({ speciesName: 'UnknownFish' });
+        assert.strictEqual(visitor, null);
+    });
+
+    it('uses defaults for missing fields', () => {
+        const visitor = Fish.createVisitor({ speciesName: 'Molly' });
+        const species = SPECIES_CATALOG.find(s => s.name === 'Molly');
+        assertCloseTo(visitor.currentSize, species.sizeInches * 0.6);
+        assert.strictEqual(visitor.isFry, false);
+        assert.strictEqual(visitor.tailDots, 0);
+    });
+
+    it('preserves Guppy tailDots', () => {
+        const visitor = Fish.createVisitor({
+            speciesName: 'Guppy',
+            tailDots: 15,
+        });
+        assert.strictEqual(visitor.tailDots, 15);
+    });
+
+    it('creates fry visitors', () => {
+        const visitor = Fish.createVisitor({
+            speciesName: 'Platy',
+            isFry: true,
+            currentSize: 0.4,
+        });
+        assert.strictEqual(visitor.isFry, true);
+        assert.strictEqual(visitor.currentSize, 0.4);
+    });
+});
+
+describe('Fish.updateVisitMode', () => {
+    it('moves fish over time', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Danio');
+        const fish = new Fish(species, 50, 50, 50);
+        const startX = fish.x;
+        const startZ = fish.z;
+        // Simulate several frames
+        for (let i = 0; i < 60; i++) {
+            fish.updateVisitMode(1 / 60);
+        }
+        // Fish should have moved
+        const moved = Math.abs(fish.x - startX) + Math.abs(fish.z - startZ);
+        assert.ok(moved > 0, 'Fish should move during visit mode');
+    });
+
+    it('keeps fish in bounds', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+        const fish = new Fish(species, 95, 95, 95);
+        fish.heading = 0; // facing right (toward wall)
+        for (let i = 0; i < 300; i++) {
+            fish.updateVisitMode(1 / 60);
+        }
+        assert.ok(fish.x >= 5 && fish.x <= 95, `x=${fish.x} out of bounds`);
+        assert.ok(fish.y >= 5 && fish.y <= 95, `y=${fish.y} out of bounds`);
+        assert.ok(fish.z >= 5 && fish.z <= 95, `z=${fish.z} out of bounds`);
+    });
+
+    it('does not change hunger or happiness', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Guppy');
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        const startHunger = fish.hunger;
+        const startHappiness = fish.happiness;
+        const startStrength = fish.strength;
+        for (let i = 0; i < 120; i++) {
+            fish.updateVisitMode(1 / 60);
+        }
+        assert.strictEqual(fish.hunger, startHunger);
+        assert.strictEqual(fish.happiness, startHappiness);
+        assert.strictEqual(fish.strength, startStrength);
+    });
+
+    it('advances tail animation', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+        const fish = new Fish(species, 50, 50, 50);
+        const startPhase = fish.tailPhase;
+        fish.updateVisitMode(1);
+        assert.ok(fish.tailPhase > startPhase, 'tailPhase should advance');
+    });
+});

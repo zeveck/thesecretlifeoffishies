@@ -80,6 +80,23 @@
         </div>
     </div>
 
+    <!-- Visit overlay -->
+    <div id="visit-overlay" class="hidden">
+        <div class="start-content">
+            <h1 id="visit-title">Visiting a Tank</h1>
+            <p id="visit-info"></p>
+            <p id="visit-fish-list"></p>
+            <button id="visit-watch-btn">Watch Fish</button>
+            <button id="visit-dismiss-btn">Back to My Tank</button>
+        </div>
+    </div>
+
+    <!-- Visit banner -->
+    <div id="visit-banner" class="hidden">
+        <span id="visit-banner-text"></span>
+        <button id="visit-back-btn">Back to My Tank</button>
+    </div>
+
     <!-- HUD -->
     <div id="hud">
         <div id="hud-top-left">
@@ -115,6 +132,7 @@
             <button class="tab active" data-tab="tank">Tank</button>
             <button class="tab" data-tab="store">Store</button>
             <button class="tab" data-tab="fish">My Fish</button>
+            <button class="tab" data-tab="shared">Shared</button>
         </div>
         <div id="drawer-content">
             <div id="tab-tank" class="tab-panel active">
@@ -158,6 +176,19 @@
             <div id="tab-fish" class="tab-panel">
                 <h3>My Fish</h3>
                 <div id="fish-list"></div>
+            </div>
+            <div id="tab-shared" class="tab-panel">
+                <h3>Live Share</h3>
+                <div id="live-share-section">
+                    <p id="live-share-status">Share your tank so friends can watch your fish!</p>
+                    <button id="btn-live-toggle">Start Live Share</button>
+                    <div id="live-share-info" class="hidden">
+                        <div id="live-share-code"></div>
+                        <button id="btn-copy-live-link">Copy Link</button>
+                    </div>
+                </div>
+                <h3>Visited Tanks</h3>
+                <div id="bookmark-list"></div>
             </div>
         </div>
         <div id="drawer-footer">
