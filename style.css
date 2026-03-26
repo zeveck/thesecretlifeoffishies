@@ -682,6 +682,116 @@ body.high-contrast .tab-panel h3 { color: #80a8c8; }
 }
 .bookmark-remove:active { background: rgba(96, 120, 136, 0.15); }
 
+/* Sanctuary banner */
+#sanctuary-banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(10, 22, 40, 0.85);
+    color: #b0d4f1; font-size: 0.85rem;
+    padding: 10px 16px; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(106, 190, 106, 0.3);
+}
+#sanctuary-banner.hidden { display: none; }
+#sanctuary-back-btn {
+    padding: 6px 14px; border: 1px solid #6abe6a;
+    background: rgba(106, 190, 106, 0.1); color: #6abe6a;
+    border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+}
+#sanctuary-back-btn:active { background: rgba(106, 190, 106, 0.25); }
+
+/* Retire button on fish cards */
+.fish-card-retire {
+    padding: 4px 10px;
+    border: 1px solid #6abe6a;
+    background: rgba(106, 190, 106, 0.1);
+    color: #6abe6a;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+.fish-card-retire:active { background: rgba(106, 190, 106, 0.25); }
+
+/* Sanctuary entry */
+#btn-sanctuary {
+    width: 100%; padding: 10px;
+    border: 1px solid #6abe6a;
+    background: rgba(106, 190, 106, 0.1);
+    color: #6abe6a;
+    border-radius: 8px; font-size: 0.85rem;
+    cursor: pointer; margin-bottom: 10px;
+    transition: all 0.2s;
+}
+#btn-sanctuary:active { background: rgba(106, 190, 106, 0.25); }
+#sanctuary-count {
+    font-size: 0.72rem; color: #607888;
+    margin-bottom: 12px; text-align: center;
+}
+
+/* Sanctuary action menu */
+.sanctuary-action-menu {
+    position: fixed;
+    z-index: 200;
+    background: rgba(20, 40, 60, 0.92);
+    border: 1px solid rgba(106, 190, 106, 0.4);
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 100px;
+    pointer-events: auto;
+    animation: sanctuary-menu-in 0.15s ease-out;
+}
+
+@keyframes sanctuary-menu-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.sanctuary-action-name {
+    color: #b0d0b0;
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 2px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.sanctuary-action-btn {
+    background: rgba(106, 190, 106, 0.2);
+    color: #c0e8c0;
+    border: 1px solid rgba(106, 190, 106, 0.3);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    pointer-events: auto;
+}
+
+.sanctuary-action-btn:hover {
+    background: rgba(106, 190, 106, 0.35);
+}
+
+.sanctuary-action-btn:disabled {
+    cursor: not-allowed;
+}
+
+.sanctuary-action-invite {
+    background: rgba(74, 158, 255, 0.2);
+    border-color: rgba(74, 158, 255, 0.3);
+    color: #a0d0ff;
+}
+
+.sanctuary-action-invite:hover:not(:disabled) {
+    background: rgba(74, 158, 255, 0.35);
+}
+
 /* HUD hidden state for visit mode */
 #hud.hidden { display: none; }
 

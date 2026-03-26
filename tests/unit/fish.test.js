@@ -641,3 +641,117 @@ describe('Fish.updateVisitMode', () => {
         assert.ok(fish.tailPhase > startPhase, 'tailPhase should advance');
     });
 });
+
+describe('Fish.boopVisit', () => {
+    it('sets state to booped', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        fish.boopVisit();
+        assert.strictEqual(fish.state, 'booped');
+    });
+
+    it('sets boopTimer to 0.6', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        fish.boopVisit();
+        assertCloseTo(fish.boopTimer, 0.6);
+    });
+
+    it('does NOT change strength', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        fish.strength = 50;
+        fish.boopVisit();
+        assert.strictEqual(fish.strength, 50);
+    });
+
+    it('does not boop again while already booped', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        fish.boopVisit();
+        const timer = fish.boopTimer;
+        fish.boopVisit();
+        assert.strictEqual(fish.boopTimer, timer);
+    });
+
+    it('changes target heading on boop', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        const originalHeading = fish.targetHeading;
+        fish.boopVisit();
+        assert.notStrictEqual(fish.targetHeading, originalHeading);
+    });
+});
+
+describe('Fish.updateVisitMode boop handling', () => {
+    it('decrements boopTimer during visit mode', () => {
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        fish.boopVisit();
+        assert.strictEqual(fish.state, 'booped');
+        fish.updateVisitMode(0.3);
+        assertCloseTo(fish.boopTimer, 0.3);
+        assert.strictEqual(fish.state, 'booped');
+    });
+
+    it('transitions back to wandering when boopTimer expires', () => {
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        fish.boopVisit();
+        fish.updateVisitMode(0.7);
+        assert.strictEqual(fish.state, 'wandering');
+        assert.ok(fish.boopTimer <= 0);
+    });
+
+    it('uses faster tail wag during boop', () => {
+        const species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+        const fish = new Fish(species, 50, 50, 50);
+        const phaseBefore = fish.tailPhase;
+        fish.boopVisit();
+        fish.updateVisitMode(0.5); // Stay within 0.6s boop timer
+        const phaseAdvance = fish.tailPhase - phaseBefore;
+        assertCloseTo(phaseAdvance, 9, 0); // wagSpeed 18 * 0.5s = 9
+    });
+
+    it('does not change stats after boop + recovery cycle', () => {
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        const startHunger = fish.hunger;
+        const startStrength = fish.strength;
+        const startHappiness = fish.happiness;
+        fish.boopVisit();
+        for (let i = 0; i < 60; i++) {
+            fish.updateVisitMode(1 / 60);
+        }
+        assert.strictEqual(fish.hunger, startHunger);
+        assert.strictEqual(fish.strength, startStrength);
+        assert.strictEqual(fish.happiness, startHappiness);
+    });
+});
+
+describe('Rainbow boop (sanctuary)', () => {
+    it('rainbowTimer initializes to 0', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        assert.strictEqual(fish.rainbowTimer, 0);
+    });
+
+    it('boopVisit sets rainbowTimer to 3', () => {
+        const species = SPECIES_CATALOG[0];
+        const fish = new Fish(species);
+        fish.boopVisit();
+        assert.strictEqual(fish.rainbowTimer, 3);
+    });
+
+    it('updateVisitMode decrements rainbowTimer', () => {
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        fish.boopVisit();
+        assert.strictEqual(fish.rainbowTimer, 3);
+        fish.updateVisitMode(1);
+        assertCloseTo(fish.rainbowTimer, 2);
+    });
+
+    it('rainbowTimer does not go below 0', () => {
+        const fish = Fish.createVisitor({ speciesName: 'Guppy' });
+        fish.boopVisit();
+        fish.updateVisitMode(5); // well past the 3s timer
+        assert.strictEqual(fish.rainbowTimer, 0);
+    });
+});

@@ -5,14 +5,21 @@ import { getTank, updateChemistry, loadTankState, saveTankState, applyOfflineChe
 import { getFoods, addFood, updateFood, getUneatenCount, drawFoodSide, drawFoodTop } from './food.js';
 import { getProgression, addXP, addCoins, loadProgression, saveProgression, applyOfflineRewards, usePellet, refreshDailyPellets, updateSwishMeter, setOnLevelUp, getCurrentStockInches, getTankCapacity } from './store.js';
 import { getViewAngle, setViewAngle, updateOrientation, requestOrientationPermission, initDesktopControls, toggleView, setShowToggleOnMobile, getMobileViewMode, setMobileViewMode } from './orientation.js';
-import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, addBreedHeart, drawBoopEffects } from './effects.js';
+import { updateEffects, drawWaterBackground, drawCaustics, drawBubblesSide, drawBubblesTop, drawTankEdges, addRipple, drawRipples, addBoopEffect, addRainbowBoopEffect, addBreedHeart, drawBoopEffects } from './effects.js';
 import { drawDecorationsSide, drawDecorationsTop, HIT_RADII } from './decorations.js';
-import { initUI, updateHUD, isDrawerOpen, updateFloatingTip, setVisitMode as setUIVisitMode } from './ui.js';
+import { initUI, updateHUD, isDrawerOpen, updateFloatingTip, setVisitMode as setUIVisitMode, setSanctuaryMode as setUISanctuaryMode } from './ui.js';
 import { saveGame, loadGame, getOfflineSeconds, shouldAutoSave, initAutoSave, hasSave } from './save.js';
 import { initAudio, playBoopSound, loadAudioSettings, saveAudioSettings, startMusic, toggleMusicMute, isMusicMuted } from './audio.js';
 import { initShadowFish, updateShadowFish, drawShadowFishBehind, drawShadowFishFront, getRainbowGlowActive } from './shadowfish.js';
 import { clamp, dist, rand } from './utils.js';
 import { isLiveSharing, startPushInterval, stopPushInterval, fetchSharedTank, addBookmark } from './live.js';
+import {
+    initSanctuary, clearSanctuaryCache, getVisibleFish,
+    getCameraX, getCameraY, setCameraX, setCameraY, panCamera, getSanctuaryMeta,
+    getVisibleChunkIndices, getChunkFish, requestChunk,
+    CHUNK_WORLD_WIDTH, CHUNK_WORLD_HEIGHT,
+    takeSanctuaryFish, removeFishFromCache,
+} from './sanctuary.js';
 
 // --- State ---
 const canvas = document.getElementById('tank');
@@ -24,6 +31,7 @@ let breedTimers = {};
 // Easter egg: track rapid boops between same-species live bearers
 let easterEggBoops = {}; // { speciesName: { count, firstBoopTime } }
 let rainbowBonusApplied = false;
+let sanctuaryMode = false;
 let visitMode = false;
 let savedStateBeforeVisit = null; // captured before entering visit mode
 let gameLoopRunning = false;
@@ -57,6 +65,11 @@ let longPressStartX = 0, longPressStartY = 0;
 let draggingDeco = null;    // index into tank.decorations, or null
 let decoGrabOffset = null;  // { dx, dy } so decoration doesn't snap to finger center
 let audioInitialized = false;
+let sanctuaryPanStartX = 0;     // clientX at pointerdown
+let sanctuaryPanStartY = 0;     // clientY at pointerdown
+let sanctuaryPanStartCamX = 0;  // camera.x at pointerdown
+let sanctuaryPanStartCamY = 0;  // camera.y at pointerdown
+let sanctuaryIsPanning = false;  // true when pointer has moved > 5px
 
 canvas.addEventListener('pointerdown', (e) => {
     if (!audioInitialized) {
@@ -64,6 +77,18 @@ canvas.addEventListener('pointerdown', (e) => {
         audioInitialized = true;
     }
     if (isDrawerOpen()) return;
+    if (sanctuaryMode) {
+        dismissSanctuaryActionMenu();
+        sanctuaryPanStartX = e.clientX;
+        sanctuaryPanStartY = e.clientY;
+        sanctuaryPanStartCamX = getCameraX();
+        sanctuaryPanStartCamY = getCameraY();
+        sanctuaryIsPanning = false;
+        pointerDown = true;
+        pointerX = e.clientX;
+        pointerY = e.clientY;
+        return; // Don't run handleTap yet — wait for pointerup to distinguish tap vs pan
+    }
     pointerDown = true;
     pointerHoldStart = Date.now();
     pointerX = e.clientX;
@@ -102,6 +127,18 @@ canvas.addEventListener('pointerdown', (e) => {
 
 canvas.addEventListener('pointermove', (e) => {
     if (!pointerDown) return;
+    if (sanctuaryMode) {
+        const dx = e.clientX - sanctuaryPanStartX;
+        const dy = e.clientY - sanctuaryPanStartY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) sanctuaryIsPanning = true;
+        if (sanctuaryIsPanning) {
+            const worldDx = -(dx / tankW) * CHUNK_WORLD_WIDTH;
+            const worldDy = -(dy / tankH) * CHUNK_WORLD_HEIGHT;
+            setCameraX(sanctuaryPanStartCamX + worldDx);
+            setCameraY(sanctuaryPanStartCamY + worldDy);
+        }
+        return;
+    }
     pointerX = e.clientX;
     pointerY = e.clientY;
 
@@ -127,6 +164,15 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 canvas.addEventListener('pointerup', () => {
+    if (sanctuaryMode) {
+        if (!sanctuaryIsPanning) {
+            // It was a tap, not a pan — try to boop
+            handleSanctuaryTap(pointerX, pointerY);
+        }
+        pointerDown = false;
+        sanctuaryIsPanning = false;
+        return;
+    }
     pointerDown = false;
     clearTimeout(longPressTimer);
     longPressTimer = null;
@@ -143,6 +189,15 @@ canvas.addEventListener('pointercancel', () => {
     clearFingerFollow();
 });
 
+// Keyboard panning for sanctuary mode (desktop)
+document.addEventListener('keydown', (e) => {
+    if (!sanctuaryMode) return;
+    if (e.key === 'ArrowLeft') panCamera(-10, 0);
+    if (e.key === 'ArrowRight') panCamera(10, 0);
+    if (e.key === 'ArrowUp') panCamera(0, -10);
+    if (e.key === 'ArrowDown') panCamera(0, 10);
+});
+
 function handleTap(px, py) {
     // If labels are showing, tap anywhere dismisses them
     if (showFishLabels) {
@@ -153,7 +208,7 @@ function handleTap(px, py) {
 
     const viewAngle = getViewAngle();
 
-    if (viewAngle > 0.9) {
+    if (viewAngle > 0.9 && !visitMode) {
         // Top-down: place food or ripple
         const fx = ((px - tankLeft) / tankW) * 100;
         const fz = ((py - tankTop) / tankH) * 100;
@@ -174,6 +229,19 @@ function handleTap(px, py) {
                         fish.stateTimer = rand(2, 4);
                     }
                 }
+            }
+        }
+    } else if (visitMode) {
+        // Visit mode: boop with visual/audio effects only — no XP, breeding, or easter eggs
+        for (const fish of fishes) {
+            const sx = tankLeft + (fish.x / 100) * tankW;
+            const sy = tankTop + (fish.y / 100) * tankH;
+            const size = fish.getSizePixels();
+            if (dist(px, py, sx, sy) < size * 1.5) {
+                fish.boopVisit();
+                addBoopEffect(sx, sy);
+                playBoopSound();
+                break;
             }
         }
     } else {
@@ -386,6 +454,17 @@ function showFryToast(speciesName) {
     }, 2500);
 }
 
+function updateSanctuaryFish(dt) {
+    const visibleChunks = getVisibleChunkIndices();
+    for (const { cx, cy } of visibleChunks) {
+        const fish = getChunkFish(cx, cy);
+        if (!fish) continue;
+        for (const f of fish) {
+            f.updateVisitMode(dt);
+        }
+    }
+}
+
 // --- Game loop ---
 function update(dt) {
     gameTime += dt;
@@ -394,6 +473,13 @@ function update(dt) {
         updateOrientation();
         updateEffects(dt);
         for (const fish of fishes) fish.updateVisitMode(dt);
+        return;
+    }
+
+    if (sanctuaryMode) {
+        updateOrientation();
+        updateEffects(dt);
+        updateSanctuaryFish(dt);
         return;
     }
 
@@ -572,6 +658,234 @@ function drawFishLabels(ctx) {
     }
 }
 
+// --- Sanctuary mode ---
+let sanctuaryActionMenu = null; // DOM element reference
+
+function dismissSanctuaryActionMenu() {
+    if (sanctuaryActionMenu) {
+        sanctuaryActionMenu.remove();
+        sanctuaryActionMenu = null;
+    }
+}
+
+function handleSanctuaryTap(px, py) {
+    // Dismiss any existing action menu
+    dismissSanctuaryActionMenu();
+
+    const visibleFish = getVisibleFish();
+    let tappedFish = null;
+    let tapSX = 0, tapSY = 0;
+
+    for (const fish of visibleFish) {
+        const sx = tankLeft + (fish._viewX / 100) * tankW;
+        const sy = tankTop + (fish._viewY / 100) * tankH;
+        const size = fish.getSizePixels();
+        if (dist(px, py, sx, sy) < size * 1.5) {
+            tappedFish = fish;
+            tapSX = sx;
+            tapSY = sy;
+            break;
+        }
+    }
+
+    if (!tappedFish) return;
+
+    // Show action menu near the tapped fish
+    showSanctuaryActionMenu(tappedFish, tapSX, tapSY);
+}
+
+function showSanctuaryActionMenu(fish, screenX, screenY) {
+    dismissSanctuaryActionMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'sanctuary-action-menu';
+    // Position near the fish, but keep on screen
+    const menuX = Math.min(screenX - 50, window.innerWidth - 120);
+    const menuY = Math.max(screenY - 70, 10);
+    menu.style.left = `${Math.max(10, menuX)}px`;
+    menu.style.top = `${menuY}px`;
+
+    const nameLabel = document.createElement('div');
+    nameLabel.className = 'sanctuary-action-name';
+    nameLabel.textContent = fish.name || fish.species.name;
+    menu.appendChild(nameLabel);
+
+    // Species level check: only show Invite if the player has unlocked this species
+    const species = fish.species;
+    const prog = getProgression();
+    const speciesLocked = species.level > prog.level;
+
+    const boopBtn = document.createElement('button');
+    boopBtn.className = 'sanctuary-action-btn sanctuary-action-boop';
+    boopBtn.textContent = 'Boop';
+    boopBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fish.boopVisit();
+        addRainbowBoopEffect(screenX, screenY);
+        playBoopSound();
+        dismissSanctuaryActionMenu();
+    });
+    menu.appendChild(boopBtn);
+
+    const inviteBtn = document.createElement('button');
+    inviteBtn.className = 'sanctuary-action-btn sanctuary-action-invite';
+    if (speciesLocked) {
+        inviteBtn.textContent = `Locked (Lv ${species.level})`;
+        inviteBtn.disabled = true;
+        inviteBtn.style.opacity = '0.4';
+    } else {
+        inviteBtn.textContent = 'Invite';
+        inviteBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            dismissSanctuaryActionMenu();
+            await handleInviteFish(fish);
+        });
+    }
+    menu.appendChild(inviteBtn);
+
+    document.body.appendChild(menu);
+    sanctuaryActionMenu = menu;
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+        if (sanctuaryActionMenu === menu) dismissSanctuaryActionMenu();
+    }, 4000);
+}
+
+let pendingInviteFish = null; // fish data from sanctuary take, added after exiting
+
+async function handleInviteFish(fish) {
+    // Capacity check: use the fish's actual currentSize
+    // During sanctuary mode, fishes array is empty — use savedStateBeforeVisit
+    const realFishes = savedStateBeforeVisit?.fish
+        ? savedStateBeforeVisit.fish.map(fd => ({ currentSize: fd.currentSize || 0 }))
+        : fishes;
+    const cap = getTankCapacity();
+    const used = getCurrentStockInches(realFishes);
+    if (used + fish.currentSize > cap) {
+        showToast('Your tank is too full to invite this fish!');
+        return;
+    }
+
+    // Attempt to take from sanctuary
+    try {
+        const result = await takeSanctuaryFish(
+            fish.sanctuaryChunkCX,
+            fish.sanctuaryChunkCY,
+            fish.sanctuaryId
+        );
+
+        // Remove from local cache
+        removeFishFromCache(fish.sanctuaryChunkCX, fish.sanctuaryChunkCY, fish.sanctuaryId);
+
+        // Store the taken fish data so we can create it after exiting sanctuary
+        pendingInviteFish = result.fish;
+
+        // Show toast and exit
+        showToast(`${fish.name || fish.species.name} has joined your tank!`);
+        exitSanctuaryMode();
+    } catch (err) {
+        showToast(err.message || 'Could not invite this fish. Try another!');
+    }
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fry-toast'; // reuse the existing fry-toast styling
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('fry-toast-out');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 2500);
+}
+
+function renderSanctuary() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Water background (same as normal mode, side view)
+    drawWaterBackground(ctx, w, h, 0); // viewAngle = 0 (always side view)
+
+    // Caustics
+    drawCaustics(ctx, w, h, 0, gameTime);
+
+    // Tank edges
+    drawTankEdges(ctx, tankLeft, tankTop, tankW, tankH, 0);
+
+    // Fish — use viewport-adjusted positions
+    const visibleFish = getVisibleFish();
+    for (const fish of visibleFish) {
+        const realX = fish.x;
+        const realY = fish.y;
+        fish.x = fish._viewX;
+        fish.y = fish._viewY;
+        fish.drawSide(ctx, tankLeft, tankTop, tankW, tankH, gameTime);
+        fish.x = realX;
+        fish.y = realY;
+
+        // Own fish indicator: small green diamond above the fish
+        if (fish.isOwnRetired) {
+            const sx = tankLeft + (fish._viewX / 100) * tankW;
+            const sy = tankTop + (fish._viewY / 100) * tankH;
+            const size = fish.getSizePixels();
+            ctx.save();
+            ctx.fillStyle = 'rgba(106, 190, 106, 0.7)';
+            ctx.translate(sx, sy - size * 0.7);
+            ctx.rotate(Math.PI / 4);
+            ctx.fillRect(-3, -3, 6, 6);
+            ctx.restore();
+        }
+    }
+
+    // Bubbles (side view)
+    drawBubblesSide(ctx, tankLeft, tankTop, tankW, tankH);
+
+    // Boop sparkles
+    drawBoopEffects(ctx, TICK);
+
+    // Minimap
+    renderMinimap(ctx);
+}
+
+function renderMinimap(ctx) {
+    const meta = getSanctuaryMeta();
+    const gw = meta.gridWidth || 10;
+    const gh = meta.gridHeight || 10;
+
+    // Minimap dimensions: small rectangle in bottom-right corner
+    const mapW = 80;
+    const mapH = 80;
+    const margin = 12;
+    const mapX = window.innerWidth - mapW - margin;
+    const mapY = window.innerHeight - mapH - margin;
+
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(mapX, mapY, mapW, mapH);
+
+    // Border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mapX, mapY, mapW, mapH);
+
+    // Viewport indicator
+    const totalWorldW = gw * CHUNK_WORLD_WIDTH;
+    const totalWorldH = gh * CHUNK_WORLD_HEIGHT;
+    const vpX = mapX + (getCameraX() / totalWorldW) * mapW;
+    const vpY = mapY + (getCameraY() / totalWorldH) * mapH;
+    const vpW = (CHUNK_WORLD_WIDTH / totalWorldW) * mapW;
+    const vpH = (CHUNK_WORLD_HEIGHT / totalWorldH) * mapH;
+
+    ctx.fillStyle = 'rgba(74, 158, 255, 0.4)';
+    ctx.fillRect(vpX, vpY, vpW, vpH);
+    ctx.strokeStyle = 'rgba(74, 158, 255, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(vpX, vpY, vpW, vpH);
+}
+
 // --- Visit mode ---
 function showVisitOverlay(data, code) {
     const overlay = document.getElementById('visit-overlay');
@@ -678,6 +992,105 @@ function exitVisitMode() {
     }
 }
 
+async function enterSanctuaryMode() {
+    // Capture state (same pattern as visit mode)
+    if (initDone) {
+        savedStateBeforeVisit = getSaveState();
+    }
+
+    sanctuaryMode = true;
+    visitMode = false;
+    setUIVisitMode(false);
+    setUISanctuaryMode(true);
+    stopPushInterval();
+    fishes.length = 0; // clear local fish
+
+    // Hide HUD, show sanctuary banner
+    document.getElementById('hud').classList.add('hidden');
+    const banner = document.getElementById('sanctuary-banner');
+
+    try {
+        const meta = await initSanctuary();
+        document.getElementById('sanctuary-banner-text').textContent =
+            `Sanctuary — ${meta.totalFish} fish from players worldwide`;
+        banner.classList.remove('hidden');
+
+        // Start camera at center of grid
+        const centerX = (meta.gridWidth / 2 - 0.5) * CHUNK_WORLD_WIDTH;
+        const centerY = (meta.gridHeight / 2 - 0.5) * CHUNK_WORLD_HEIGHT;
+        setCameraX(centerX);
+        setCameraY(centerY);
+
+        // Request surrounding chunks (getVisibleFish handles this, but pre-warm)
+        const visible = getVisibleChunkIndices();
+        for (const { cx, cy } of visible) {
+            requestChunk(cx, cy);
+        }
+    } catch {
+        document.getElementById('sanctuary-banner-text').textContent = 'Sanctuary';
+        banner.classList.remove('hidden');
+    }
+
+    document.getElementById('sanctuary-back-btn').onclick = () => exitSanctuaryMode();
+
+    // Start game loop if not running
+    if (!gameLoopRunning) {
+        gameLoopRunning = true;
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+function exitSanctuaryMode() {
+    dismissSanctuaryActionMenu();
+    sanctuaryMode = false;
+    setUISanctuaryMode(false);
+    clearSanctuaryCache();
+    fishes.length = 0;
+    document.getElementById('sanctuary-banner').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+
+    // Restore state (same pattern as exitVisitMode)
+    if (initDone && savedStateBeforeVisit) {
+        const saved = savedStateBeforeVisit;
+        savedStateBeforeVisit = null;
+
+        if (saved.tank) loadTankState(saved.tank);
+        if (saved.fish) {
+            for (const fd of saved.fish) {
+                const fish = Fish.deserialize(fd);
+                if (fish) fishes.push(fish);
+            }
+        }
+        if (saved.breedTimers) breedTimers = { ...saved.breedTimers };
+
+        // Add pending invite fish if any
+        if (pendingInviteFish) {
+            const fd = pendingInviteFish;
+            pendingInviteFish = null;
+            const species = SPECIES_CATALOG.find(s => s.name === fd.speciesName);
+            if (species) {
+                const newFish = new Fish(species, undefined, undefined, undefined, fd.name || '');
+                newFish.currentSize = fd.currentSize ?? species.sizeInches * 0.6;
+                newFish.isFry = fd.isFry ?? false;
+                newFish.tailDots = fd.tailDots ?? 0;
+                newFish.happiness = 80;
+                newFish.hunger = 50;
+                newFish.strength = 80;
+                fishes.push(newFish);
+            }
+        }
+
+        // Explicit save after adding invited fish
+        saveGame(getSaveState());
+
+        updateHUD();
+        if (isLiveSharing()) startPushInterval(getSaveState);
+    } else {
+        normalStartup();
+    }
+}
+
 function normalStartup() {
     if (hasSave()) {
         requestOrientationPermission().then(() => init());
@@ -705,14 +1118,18 @@ function gameLoop(timestamp) {
         accumulator -= TICK;
     }
 
-    render();
+    if (sanctuaryMode) {
+        renderSanctuary();
+    } else {
+        render();
+    }
     requestAnimationFrame(gameLoop);
 }
 
 // --- Save state ---
 function getSaveState() {
-    // During visit mode, return the captured state to prevent overwriting real save
-    if (visitMode && savedStateBeforeVisit) {
+    // During visit/sanctuary mode, return the captured state to prevent overwriting real save
+    if ((visitMode || sanctuaryMode) && savedStateBeforeVisit) {
         return savedStateBeforeVisit;
     }
     return {
@@ -804,7 +1221,7 @@ function init() {
     });
 
     // Init UI
-    initUI(fishes, addFishToTank, getSaveState, getBreedTimers);
+    initUI(fishes, addFishToTank, getSaveState, getBreedTimers, enterSanctuaryMode);
 
     // Init auto-save
     initAutoSave(getSaveState);

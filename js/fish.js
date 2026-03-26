@@ -48,6 +48,8 @@ export class Fish {
         this.stateTimer = 0;
         this.wanderTarget = { x: rand(10, 90), y: rand(15, 85), z: rand(10, 90) };
 
+        this.rainbowTimer = 0; // seconds remaining of rainbow glow (sanctuary boop)
+
         this.tailPhase = rand(0, Math.PI * 2);
         this.boopTimer = 0;
         this.lastBoopXP = 0; // timestamp for XP cooldown
@@ -267,6 +269,14 @@ export class Fish {
         this.targetHeading = this.heading + (Math.random() > 0.5 ? 1 : -1) * rand(1.5, 2.5);
     }
 
+    boopVisit() {
+        if (this.state === 'booped') return;
+        this.state = 'booped';
+        this.boopTimer = 0.6;
+        this.rainbowTimer = 3; // 3 seconds of rainbow glow
+        this.targetHeading = this.heading + (Math.random() > 0.5 ? 1 : -1) * rand(1.5, 2.5);
+    }
+
     // --- Drawing ---
 
     drawSide(ctx, tankLeft, tankTop, tankW, tankH, gameTime) {
@@ -299,8 +309,8 @@ export class Fish {
         let bellyColor = satAdj !== 0 ? adjustSaturation(this.species.belly, satAdj) : this.species.belly;
         let finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
 
-        // Rainbow glow override
-        if (getRainbowGlowActive() && gameTime !== undefined) {
+        // Rainbow glow override (shadow fish event OR sanctuary boop)
+        if ((getRainbowGlowActive() || this.rainbowTimer > 0) && gameTime !== undefined) {
             const hue = getRainbowHue(gameTime, this.id);
             bodyColor = `hsl(${hue}, 100%, 55%)`;
             bellyColor = `hsl(${(hue + 30) % 360}, 100%, 70%)`;
@@ -391,7 +401,7 @@ export class Fish {
 
         // Neon glow stripe
         if (this.species.glowStripe) {
-            const sc = (getRainbowGlowActive() && gameTime !== undefined)
+            const sc = ((getRainbowGlowActive() || this.rainbowTimer > 0) && gameTime !== undefined)
                 ? `hsl(${(getRainbowHue(gameTime, this.id) + 90) % 360}, 100%, 65%)`
                 : this.species.glowStripe;
             const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
@@ -498,8 +508,8 @@ export class Fish {
         let bodyColor = satAdj !== 0 ? adjustSaturation(this.species.body, satAdj) : this.species.body;
         let finColor = satAdj !== 0 ? adjustSaturation(this.species.fin, satAdj) : this.species.fin;
 
-        // Rainbow glow override
-        if (getRainbowGlowActive() && gameTime !== undefined) {
+        // Rainbow glow override (shadow fish event OR sanctuary boop)
+        if ((getRainbowGlowActive() || this.rainbowTimer > 0) && gameTime !== undefined) {
             const hue = getRainbowHue(gameTime, this.id);
             bodyColor = `hsl(${hue}, 100%, 55%)`;
             finColor = `hsl(${(hue + 60) % 360}, 100%, 50%)`;
@@ -570,7 +580,7 @@ export class Fish {
 
         // Dorsal stripe / glow stripe
         if (this.species.glowStripe) {
-            const sc = (getRainbowGlowActive() && gameTime !== undefined)
+            const sc = ((getRainbowGlowActive() || this.rainbowTimer > 0) && gameTime !== undefined)
                 ? `hsl(${(getRainbowHue(gameTime, this.id) + 90) % 360}, 100%, 65%)`
                 : this.species.glowStripe;
             const baseAlpha = this.leaving ? 1 - this.leaveProgress : 1;
@@ -709,24 +719,40 @@ export class Fish {
 
     // Visit mode: wandering AI only — no hunger/stats/food/leaving
     updateVisitMode(dt) {
-        // Wandering AI
-        this.stateTimer -= dt;
-        if (this.stateTimer <= 0) {
-            let tx, ty, tz;
-            for (let attempt = 0; attempt < 5; attempt++) {
-                tx = rand(10, 90);
-                ty = rand(15, 85);
-                tz = rand(10, 90);
-                if (dist(this.x, this.z, tx, tz) >= 25) break;
-            }
-            this.wanderTarget = { x: tx, y: ty, z: tz };
-            this.stateTimer = rand(1.5, 3.5);
+        if (this.rainbowTimer > 0) {
+            this.rainbowTimer -= dt;
+            if (this.rainbowTimer < 0) this.rainbowTimer = 0;
         }
-        this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
-        const dy = this.wanderTarget.y - this.y;
-        this.targetPitch = clamp(dy * 0.06, -0.4, 0.4) + Math.sin(this.tailPhase * 0.3) * 0.1;
 
-        // Movement
+        // Boop timer — skip wandering AI while booped
+        if (this.boopTimer > 0) {
+            this.boopTimer -= dt;
+            if (this.boopTimer <= 0) {
+                this.state = 'wandering';
+                this.stateTimer = rand(2, 5);
+            }
+        }
+
+        // Wandering AI (skip if booped)
+        if (this.state !== 'booped') {
+            this.stateTimer -= dt;
+            if (this.stateTimer <= 0) {
+                let tx, ty, tz;
+                for (let attempt = 0; attempt < 5; attempt++) {
+                    tx = rand(10, 90);
+                    ty = rand(15, 85);
+                    tz = rand(10, 90);
+                    if (dist(this.x, this.z, tx, tz) >= 25) break;
+                }
+                this.wanderTarget = { x: tx, y: ty, z: tz };
+                this.stateTimer = rand(1.5, 3.5);
+            }
+            this.targetHeading = angleTo(this.x, this.z, this.wanderTarget.x, this.wanderTarget.z);
+            const dy = this.wanderTarget.y - this.y;
+            this.targetPitch = clamp(dy * 0.06, -0.4, 0.4) + Math.sin(this.tailPhase * 0.3) * 0.1;
+        }
+
+        // Movement (always runs — booped fish drift in their new direction)
         this.heading = lerpAngle(this.heading, this.targetHeading, 5 * dt);
         this.pitch = lerp(this.pitch, this.targetPitch, 5 * dt);
         const spd = this.speed * 0.8 * 0.16 * dt;
@@ -739,8 +765,9 @@ export class Fish {
         this.y = clamp(this.y, 5, 95);
         this.z = clamp(this.z, 5, 95);
 
-        // Tail animation
-        this.tailPhase += 8 * dt;
+        // Tail animation — faster wag when booped
+        const wagSpeed = this.state === 'booped' ? 18 : 8;
+        this.tailPhase += wagSpeed * dt;
     }
 
     static createVisitor(data) {

@@ -2,24 +2,36 @@ import { test, expect } from '@playwright/test';
 
 // Helper: dismiss the start overlay by clicking the start button
 async function startGame(page) {
-    // Clear localStorage on load to ensure consistent first-time experience
-    await page.addInitScript(() => localStorage.clear());
+    // Clear localStorage and unregister any service workers to prevent
+    // SW-triggered page reloads (controllerchange → location.reload()) that
+    // would reset the start overlay after we've already dismissed it.
+    await page.addInitScript(() => {
+        localStorage.clear();
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(regs =>
+                regs.forEach(r => r.unregister())
+            );
+        }
+        // Prevent the inline SW registration script from running
+        Object.defineProperty(navigator, 'serviceWorker', {
+            value: undefined,
+            writable: true,
+            configurable: true,
+        });
+    });
     await page.goto('/');
 
-    // Wait for the start overlay to appear (module script is deferred)
-    const startBtn = page.locator('#start-btn');
-    await startBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await startBtn.click({ timeout: 5000 });
+    // Wait for the module script to run and show the overlay (removes hidden class).
+    // This proves normalStartup() has executed and the click handler is registered.
+    const overlay = page.locator('#start-overlay');
+    await expect(overlay).not.toHaveClass(/hidden/, { timeout: 10000 });
 
-    // Wait for the start overlay to get hidden class (init runs after click)
-    await expect(page.locator('#start-overlay')).toHaveClass(/hidden/, { timeout: 15000 });
-    // Wait for the HUD to be rendered (indicates game init completed)
+    // Click the start button to dismiss the overlay and trigger init()
+    await page.locator('#start-btn').click({ timeout: 5000 });
+
+    // Wait for init() to finish: overlay gets hidden class back, HUD is rendered
+    await expect(overlay).toHaveClass(/hidden/, { timeout: 15000 });
     await expect(page.locator('#hud')).toBeVisible({ timeout: 10000 });
-    // Wait for the CSS opacity transition (0.5s) and pointer-events to take effect
-    await page.waitForFunction(() => {
-        const el = document.getElementById('start-overlay');
-        return el && getComputedStyle(el).pointerEvents === 'none';
-    }, { timeout: 5000 });
 }
 
 // --- Drawer Tests ---

@@ -49,6 +49,35 @@ export function addBoopEffect(screenX, screenY) {
     }
 }
 
+export function addRainbowBoopEffect(screenX, screenY) {
+    for (let i = 0; i < 10; i++) {
+        const angle = (Math.PI * 2 / 10) * i + rand(-0.3, 0.3);
+        const speed = rand(50, 100);
+        boopParticles.push({
+            x: screenX, y: screenY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            age: 0, maxAge: rand(0.4, 0.7),
+            size: rand(2.5, 5),
+            hue: (i * 36) % 360, // rainbow distribution: 0, 36, 72, 108, ...
+        });
+    }
+    // Rainbow hearts
+    const heartCount = 3;
+    for (let i = 0; i < heartCount; i++) {
+        heartParticles.push({
+            x: screenX + rand(-10, 10),
+            y: screenY,
+            vy: rand(-45, -30),
+            swayPhase: rand(0, Math.PI * 2),
+            swayFreq: rand(2, 4),
+            swayAmp: rand(8, 15),
+            age: 0, maxAge: rand(1.2, 1.8),
+            size: rand(7, 11),
+        });
+    }
+}
+
 export function drawBoopEffects(ctx, dt) {
     for (let i = boopParticles.length - 1; i >= 0; i--) {
         const p = boopParticles[i];

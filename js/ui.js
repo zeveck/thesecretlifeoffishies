@@ -11,6 +11,7 @@ import { clamp } from './utils.js';
 import { clearSave, exportSaveJSON, importSaveJSON, saveGame } from './save.js';
 import { getMasterVolume, setMasterVolume, getSfxVolume, setSfxVolume, getMusicVolume, setMusicVolume } from './audio.js';
 import { isLiveSharing, getLiveCode, startLiveShare, stopLiveShare, getBookmarks, removeBookmark } from './live.js';
+import { retireFish, extractRetireData, fetchSanctuaryMeta } from './sanctuary.js';
 
 const FISH_TIPS = [
     { tip: "Goldfish can remember things for months -- the 3-second memory myth is totally false.", source: "https://www.livescience.com/goldfish-memory.html" },
@@ -38,6 +39,8 @@ let tipShownFirst = false;
 
 let drawerOpen = false;
 let isVisitMode = false;
+let isSanctuaryMode = false;
+let enterSanctuaryCallback = null;
 let onAddFish = null; // callback
 let fishesRef = null;  // reference to fish array
 let getSaveStateRef = null; // callback to get current save state
@@ -47,11 +50,12 @@ const WATER_CHANGE_COOLDOWN = 30000; // 30 seconds
 let waterChangeCooldownInterval = null;
 let cooldownToastTimer = null;
 
-export function initUI(fishes, addFishCallback, getSaveState, getBreedTimers) {
+export function initUI(fishes, addFishCallback, getSaveState, getBreedTimers, enterSanctuaryCb) {
     fishesRef = fishes;
     onAddFish = addFishCallback;
     getSaveStateRef = getSaveState;
     getBreedTimersRef = getBreedTimers || (() => ({}));
+    enterSanctuaryCallback = enterSanctuaryCb || null;
 
     // Menu button
     document.getElementById('menu-btn').addEventListener('click', toggleDrawer);
@@ -157,6 +161,12 @@ export function initUI(fishes, addFishCallback, getSaveState, getBreedTimers) {
     document.getElementById('btn-share').addEventListener('click', () => {
         shareTank(document.getElementById('btn-share'));
     });
+
+    // Sanctuary button
+    document.getElementById('btn-sanctuary').addEventListener('click', () => {
+        closeDrawer();
+        if (enterSanctuaryCallback) enterSanctuaryCallback();
+    });
 }
 
 function toggleDrawer() {
@@ -182,6 +192,10 @@ export function isDrawerOpen() {
 
 export function setVisitMode(val) {
     isVisitMode = val;
+}
+
+export function setSanctuaryMode(val) {
+    isSanctuaryMode = val;
 }
 
 function openConfigDialog() {
@@ -522,6 +536,38 @@ function refreshMyFish() {
 
         card.appendChild(info);
 
+        // Retire button (only in normal mode)
+        if (!isVisitMode && !isSanctuaryMode) {
+            const retireBtn = document.createElement('button');
+            retireBtn.className = 'fish-card-retire';
+            retireBtn.textContent = 'Retire';
+            retireBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Don't trigger rename
+                showConfirm(
+                    `Retire ${fish.displayName()} to the sanctuary? They'll live happily forever, but you can't get them back.`,
+                    async () => {
+                        try {
+                            retireBtn.textContent = 'Retiring...';
+                            retireBtn.disabled = true;
+                            const data = extractRetireData(fish);
+                            await retireFish(data);
+                            // Remove fish from local array
+                            const idx = fishesRef.indexOf(fish);
+                            if (idx >= 0) fishesRef.splice(idx, 1);
+                            refreshMyFish();
+                            // Show toast
+                            showRetireToast(fish.displayName());
+                        } catch (err) {
+                            retireBtn.textContent = 'Retire';
+                            retireBtn.disabled = false;
+                            alert(err.message || 'Failed to retire fish. Try again later.');
+                        }
+                    }
+                );
+            });
+            card.appendChild(retireBtn);
+        }
+
         // Tap to rename
         card.addEventListener('click', () => {
             const newName = prompt(
@@ -656,6 +702,17 @@ async function shareTank(buttonEl) {
     }
 }
 
+function showRetireToast(name) {
+    const toast = document.createElement('div');
+    toast.className = 'fry-toast'; // reuse fry toast styling
+    toast.textContent = `${name} has been retired to the sanctuary!`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('fry-toast-out');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 2500);
+}
+
 function showShareFeedback(buttonEl, message) {
     const original = buttonEl.textContent;
     buttonEl.textContent = `✓ ${message}`;
@@ -767,6 +824,19 @@ function showFoodBuyAnimation(btnEl) {
 }
 
 function refreshSharedTab() {
+    // Fetch sanctuary fish count
+    fetchSanctuaryMeta().then(meta => {
+        const el = document.getElementById('sanctuary-count');
+        if (el) {
+            el.textContent = meta.totalFish > 0
+                ? `${meta.totalFish} fish living in the sanctuary`
+                : 'The sanctuary is empty. Be the first to retire a fish!';
+        }
+    }).catch(() => {
+        const el = document.getElementById('sanctuary-count');
+        if (el) el.textContent = 'Could not load sanctuary info.';
+    });
+
     const toggleBtn = document.getElementById('btn-live-toggle');
     const statusEl = document.getElementById('live-share-status');
     const infoEl = document.getElementById('live-share-info');
