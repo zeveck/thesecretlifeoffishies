@@ -536,18 +536,18 @@ function refreshMyFish() {
 
         card.appendChild(info);
 
-        // Retire button (only in normal mode)
+        // Sanctuary button (only in normal mode)
         if (!isVisitMode && !isSanctuaryMode) {
             const retireBtn = document.createElement('button');
             retireBtn.className = 'fish-card-retire';
-            retireBtn.textContent = 'Retire';
+            retireBtn.textContent = 'Sanctuary';
             retireBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); // Don't trigger rename
                 showConfirm(
-                    `Retire ${fish.displayName()} to the sanctuary? They'll live happily forever, but you can't get them back.`,
+                    `Send ${fish.displayName()} to the sanctuary? They'll live happily forever — but anyone can invite them to their own tank!`,
                     async () => {
                         try {
-                            retireBtn.textContent = 'Retiring...';
+                            retireBtn.textContent = 'Sending...';
                             retireBtn.disabled = true;
                             const data = extractRetireData(fish);
                             await retireFish(data);
@@ -558,11 +558,12 @@ function refreshMyFish() {
                             // Show toast
                             showRetireToast(fish.displayName());
                         } catch (err) {
-                            retireBtn.textContent = 'Retire';
+                            retireBtn.textContent = 'Sanctuary';
                             retireBtn.disabled = false;
-                            alert(err.message || 'Failed to retire fish. Try again later.');
+                            alert(err.message || 'Failed to send fish. Try again later.');
                         }
-                    }
+                    },
+                    fish
                 );
             });
             card.appendChild(retireBtn);
@@ -631,12 +632,12 @@ function setText(selector, value) {
     if (el) el.textContent = value;
 }
 
-function showConfirm(message, onConfirm) {
+function showConfirm(message, onConfirm, specificFish) {
     const overlay = document.getElementById('confirm-overlay');
     document.getElementById('confirm-message').textContent = message;
     overlay.classList.remove('hidden');
 
-    drawConfirmFish();
+    drawConfirmFish(specificFish);
 
     const ok = document.getElementById('confirm-ok');
     const cancel = document.getElementById('confirm-cancel');
@@ -705,7 +706,7 @@ async function shareTank(buttonEl) {
 function showRetireToast(name) {
     const toast = document.createElement('div');
     toast.className = 'fry-toast'; // reuse fry toast styling
-    toast.textContent = `${name} has been retired to the sanctuary!`;
+    toast.textContent = `${name} has been sent to the sanctuary!`;
     document.body.appendChild(toast);
     setTimeout(() => {
         toast.classList.add('fry-toast-out');
@@ -830,7 +831,7 @@ function refreshSharedTab() {
         if (el) {
             el.textContent = meta.totalFish > 0
                 ? `${meta.totalFish} fish living in the sanctuary`
-                : 'The sanctuary is empty. Be the first to retire a fish!';
+                : 'The sanctuary is empty. Be the first to send a fish!';
         }
     }).catch(() => {
         const el = document.getElementById('sanctuary-count');
@@ -945,26 +946,37 @@ function refreshBookmarkList() {
     }
 }
 
-function drawConfirmFish() {
+function drawConfirmFish(specificFish) {
     const canvas = document.getElementById('confirm-fish');
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Pick a fish from the tank, or create a default Neon Tetra
-    let species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
-    if (fishesRef && fishesRef.length > 0) {
-        species = fishesRef[Math.floor(Math.random() * fishesRef.length)].species;
+    let fish;
+    if (specificFish) {
+        // Draw the specific fish being acted on — create a temp copy for rendering
+        fish = new Fish(specificFish.species, 50, 50, 50, specificFish.name);
+        fish.currentSize = specificFish.currentSize;
+        fish.isFry = specificFish.isFry;
+        fish.tailDots = specificFish.tailDots;
+        fish.happiness = specificFish.happiness;
+        fish.heading = 0;
+        fish.tailPhase = 0;
+        fish.pitch = 0;
+    } else {
+        // Fallback: pick a random fish or default Neon Tetra
+        let species = SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+        if (fishesRef && fishesRef.length > 0) {
+            species = fishesRef[Math.floor(Math.random() * fishesRef.length)].species;
+        }
+        fish = new Fish(species);
+        fish.x = 50;
+        fish.y = 50;
+        fish.happiness = 20; // sad desaturation
+        fish.heading = 0;
+        fish.tailPhase = 0;
+        fish.pitch = 0;
     }
-
-    // Create a temporary fish and draw it scaled to fill the canvas
-    const fish = new Fish(species);
-    fish.x = 50;
-    fish.y = 50;
-    fish.happiness = 20; // sad desaturation
-    fish.heading = 0; // facing right
-    fish.tailPhase = 0;
-    fish.pitch = 0;
 
     // Scale up so the fish fills the canvas nicely
     const rawPx = fish.currentSize * 20;
@@ -978,7 +990,8 @@ function drawConfirmFish() {
     ctx.restore();
 
     // Add a frown over the mouth area
-    const bodyW = targetPx * (species.aspect / 2);
+    const fishSpecies = fish.species || SPECIES_CATALOG.find(s => s.name === 'Neon Tetra');
+    const bodyW = targetPx * (fishSpecies.aspect / 2);
     const bodyH = targetPx * 0.5;
     ctx.save();
     ctx.translate(w / 2, h / 2);
